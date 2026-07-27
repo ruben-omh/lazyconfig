@@ -1,0 +1,49 @@
+{
+	"name": "@lazyconfig/tsconfig",
+	"version": "0.0.0",
+	"description": "Reusable TypeScript configuration presets to standardize compiler settings.",
+	"files": [
+		"base.json",
+		"node.json",
+		"lib.json",
+		"react.json",
+		"env.d.ts",
+		"package.json",
+		"README.md",
+		"LICENSE"
+	],
+	"exports": {
+		".": "./base.json",
+		"./base": "./base.json",
+		"./node": "./node.json",
+		"./lib": "./lib.json",
+		"./react": "./react.json",
+		"./env": "./env.d.ts",
+		"./package.json": "./package.json"
+	},
+	"keywords": [
+		"tsconfig",
+		"typescript",
+		"config",
+		"lazyconfig"
+	],
+	"packageManager": "pnpm@11.5.2",
+	"engines": {
+		"node": ">=22.0.0",
+		"pnpm": ">=10.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"homepage": "https://github.com/ruben-omh/lazyconfig/tree/main/packages/tsconfig#readme",
+	"bugs": {
+		"url": "https://github.com/ruben-omh/lazyconfig/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ruben-omh/lazyconfig",
+		"directory": "packages/tsconfig"
+	},
+	"author": "ruben-omh",
+	"license": "MIT"
+}
