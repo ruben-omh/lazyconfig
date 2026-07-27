@@ -1,0 +1,70 @@
+name: Release Reminder
+
+# Opens (or comments on) a tracking issue when a Version PR is merged into
+# main, so the manual `release.yml` dispatch is not forgotten. The issue is
+# auto-closed by `release.yml` after a successful publish.
+#
+# Triggered by the Changesets Version PR — its head branch always starts with
+# `changeset-release/`. Any other merged PR is ignored.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  issues: write
+  pull-requests: read
+  contents: read
+
+jobs:
+  open-issue:
+    name: Open release-pending issue
+    if: >
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'changeset-release/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Open or update release-pending issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          dispatch_url="https://github.com/${REPO}/actions/workflows/release.yml"
+
+          # Search for an open release-pending issue. The label scopes the
+          # query; the title check guards against false positives.
+          existing=$(gh issue list \
+            --repo "$REPO" \
+            --label release \
+            --state open \
+            --search 'in:title "Release pending"' \
+            --json number \
+            --jq '.[0].number // empty')
+
+          body=$(cat <<EOF
+          A Version PR was merged. Dispatch \`release.yml\` from the Actions UI to publish to npm.
+
+          - Version PR: ${PR_URL}
+          - Dispatch: ${dispatch_url}
+
+          This issue auto-closes when \`release.yml\` finishes successfully.
+          EOF
+          )
+
+          if [ -z "$existing" ]; then
+            gh issue create \
+              --repo "$REPO" \
+              --title "Release pending: dispatch release.yml (PR #${PR_NUMBER})" \
+              --label release \
+              --body "$body"
+          else
+            gh issue comment "$existing" \
+              --repo "$REPO" \
+              --body "Another Version PR merged (#${PR_NUMBER}). Still pending dispatch of \`release.yml\`."
+          fi

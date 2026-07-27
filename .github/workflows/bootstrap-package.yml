@@ -1,0 +1,171 @@
+name: Bootstrap Package
+
+# Manual, one-time workflow to perform the very first publish of a new
+# package to npm. npm's Trusted Publishers (OIDC) requires the package
+# to already exist on the registry before OIDC can be configured — see
+# https://github.com/npm/cli/issues/8544. This workflow is the *only*
+# place in the repo where a long-lived NPM_TOKEN is used, and it is
+# gated behind a protected environment that requires manual approval.
+#
+# Lifecycle for a new package:
+#   1. Create the package directory, set "version": "0.0.0" in package.json.
+#   2. Merge the PR adding the package (no changesets yet — nothing to release).
+#   3. Run this workflow with the package name as input.
+#   4. Go to https://www.npmjs.com/package/<name>/access and configure
+#      the Trusted Publisher (workflow: release.yml, environment: release).
+#      Optionally enable "Require OIDC" / "stage-only" for hardening.
+#   5. From here on, normal changeset-driven publishes via release.yml
+#      will work via OIDC. NPM_TOKEN is never used again for this package.
+#
+# Why a separate workflow and not a branch in release.yml?
+#   - Keeps release.yml dependency-free of long-lived secrets.
+#   - The protected environment scopes NPM_TOKEN to manual approval only;
+#     no scheduled or push-triggered job can ever read it.
+#   - Audit trail: every bootstrap is one named run, attributable to a
+#     human, listing exactly which package was initialised.
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: >
+          Package directory under packages/ to bootstrap (e.g. "cli").
+          Must contain a package.json whose .name matches the npm package
+          you intend to register.
+        required: true
+        type: string
+      dry-run:
+        description: >
+          If true, run `npm publish --dry-run` instead of publishing.
+          Use this first to verify the tarball contents before the real run.
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: bootstrap-${{ inputs.package }}
+  cancel-in-progress: false
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Bootstrap ${{ inputs.package }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The `npm-bootstrap` environment must be configured in repo settings
+    # with: (a) required reviewers, (b) NPM_TOKEN as an environment
+    # secret (not a repo secret), (c) deployment branches limited to
+    # `main`. This is what gates the token behind human approval.
+    environment:
+      name: npm-bootstrap
+      url: https://www.npmjs.com/package/${{ inputs.package }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: ./.github/actions/node-setup
+        with:
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate package directory and state
+        id: validate
+        env:
+          PKG_DIR: packages/${{ inputs.package }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -f "${PKG_DIR}/package.json" ]; then
+            echo "::error::No package.json found at ${PKG_DIR}/package.json"
+            exit 1
+          fi
+
+          PKG_NAME=$(jq -r '.name' "${PKG_DIR}/package.json")
+          PKG_VERSION=$(jq -r '.version' "${PKG_DIR}/package.json")
+          IS_PRIVATE=$(jq -r '.private // false' "${PKG_DIR}/package.json")
+
+          if [ "$IS_PRIVATE" = "true" ]; then
+            echo "::error::Package ${PKG_NAME} is marked private; refusing to publish."
+            exit 1
+          fi
+
+          # Guard against re-running bootstrap on a package that already
+          # exists on npm. If the package is already there, the user
+          # should be using the normal release flow via OIDC, not this.
+          if npm view "$PKG_NAME" version >/dev/null 2>&1; then
+            echo "::error::Package ${PKG_NAME} already exists on npm."
+            echo "::error::Use the normal release workflow (changesets) instead."
+            echo "::error::If this is intentional re-bootstrap (e.g. unpublished),"
+            echo "::error::do it manually from a maintainer's machine."
+            exit 1
+          fi
+
+          echo "name=${PKG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "dir=${PKG_DIR}" >> "$GITHUB_OUTPUT"
+
+          echo "::notice::Bootstrapping ${PKG_NAME}@${PKG_VERSION} from ${PKG_DIR}"
+
+      - name: Build
+        # Filter by package name (not path) so pnpm's "..." suffix expands
+        # to include workspace dependencies. The path-form filter
+        # (./packages/foo...) does NOT expand deps in pnpm, so a build
+        # of a package that consumes workspace deps (e.g. @lazyconfig/presets
+        # re-exports from @lazyconfig/eslint / @lazyconfig/jest / @lazyconfig/rollup)
+        # would fail with TS2307 because the linked in-tree copy has no
+        # built dist/*.d.ts yet.
+        run: pnpm --filter "${{ steps.validate.outputs.name }}..." build
+
+      - name: Publish (dry-run)
+        if: inputs.dry-run
+        working-directory: ${{ steps.validate.outputs.dir }}
+        env:
+          # NPM_TOKEN is an environment secret, only readable when the
+          # workflow is targeting the `npm-bootstrap` environment.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "::notice::Dry-run only — no publish will occur."
+          npm publish --access public --dry-run
+
+      - name: Publish
+        if: ${{ !inputs.dry-run }}
+        working-directory: ${{ steps.validate.outputs.dir }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # No --provenance on the bootstrap publish. Provenance requires
+          # OIDC and a public repo; this token-based publish cannot
+          # generate one. The first OIDC-driven publish afterwards
+          # will be the first one with provenance — which is fine: users
+          # never see the 0.0.0 bootstrap version unless they go looking.
+          npm publish --access public
+
+      - name: Post-publish instructions
+        if: ${{ !inputs.dry-run }}
+        env:
+          PKG_NAME: ${{ steps.validate.outputs.name }}
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Bootstrap complete: \`${PKG_NAME}\`
+
+          **Next steps — required before any subsequent release:**
+
+          1. Visit https://www.npmjs.com/package/${PKG_NAME}/access
+          2. Under **Publishing access** → **Trusted Publishers**, add:
+             - Provider: **GitHub Actions**
+             - Repository owner: \`${{ github.repository_owner }}\`
+             - Repository: \`${{ github.event.repository.name }}\`
+             - Workflow filename: \`release.yml\`
+             - Environment name: \`release\`
+          3. (Recommended) Enable **Require OIDC** to disable token publishes.
+          4. (Recommended) Enable **stage-only** publishes so each release
+             requires 2FA approval on npmjs.com before going public.
+          5. Add a changeset for the real first release, merge it, then merge
+             the resulting Version PR. Normal release flow takes over.
+
+          After step 2, the \`NPM_TOKEN\` is no longer used for this package.
+          EOF

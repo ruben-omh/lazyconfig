@@ -1,0 +1,184 @@
+name: Version
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# App token is generated per-job from APP_CLIENT_ID + APP_PRIVATE_KEY
+# secrets and replaces the default GITHUB_TOKEN for everything that creates
+# commits or PRs. Two reasons:
+#   1. The default GITHUB_TOKEN does not trigger subsequent workflows. When
+#      the Version PR is merged into main, we want release.yml to fire and
+#      publish. The App token does trigger it.
+#   2. The App token is short-lived (1h, regenerated per run) and scoped to
+#      exactly the permissions declared on the App. No long-lived PAT to
+#      rotate or leak.
+#
+# Job-level `permissions:` are kept tight per-job (least privilege) — the
+# App token's own scope is the real authority, but the job permissions
+# still apply to the default GITHUB_TOKEN if anything else uses it.
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # ── Detect what this push is ──────────────────────────────────────────────
+  # Determines whether the push to main contains pending changeset files
+  # that should be turned into a Version PR.
+  #
+  # Detection of "version commit" (the Version PR being merged) is owned
+  # by release.yml — this workflow only cares about the "open/refresh
+  # Version PR" path. When release.yml sees a version commit it publishes;
+  # this workflow exits early to avoid racing on the same SHA.
+
+  check:
+    name: Check Changesets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      has_changesets: ${{ steps.detect.outputs.has_changesets }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Detect pending changesets
+        id: detect
+        run: |
+          # Bail out if this push is itself the merge of the Version PR
+          # (any packages/*/package.json .version changed). release.yml
+          # handles that case; trying to open a Version PR here would be
+          # a no-op anyway since the .changeset/*.md files have been
+          # consumed, but exit early for clarity.
+          BEFORE="${{ github.event.before }}"
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+            || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            BEFORE="HEAD~1"
+          fi
+
+          for pkg in packages/*/package.json; do
+            [ -f "$pkg" ] || continue
+            new_ver=$(jq -r '.version // empty' "$pkg")
+            old_ver=$(git show "$BEFORE:$pkg" 2>/dev/null \
+              | jq -r '.version // empty' 2>/dev/null || echo "")
+            if [ "$new_ver" != "$old_ver" ]; then
+              echo "::notice::Version commit detected — release.yml handles this."
+              echo "has_changesets=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          # Check for pending changeset files (excluding README.md).
+          if find .changeset -name "*.md" ! -name "README.md" | grep -q .; then
+            echo "has_changesets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changesets=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── Create or update the Version PR ──────────────────────────────────────
+  # Runs only when changeset files are present in the repo.
+  #
+  # The Version PR's commits are made by the Release Bot App. They are
+  # exempt from CI's GPG check via the TRUSTED_BOTS allowlist (add
+  # "<app-slug>[bot]" to that list in ci.yml). A DCO sign-off is added
+  # automatically via format.signOff so the audit trail stays consistent.
+  #
+  # Merging this PR into main is the maintainer's go-decision: it triggers
+  # release.yml on the resulting push, which publishes to npm.
+
+  version:
+    name: Create Version PR
+    runs-on: ubuntu-latest
+    needs: [check]
+    if: needs.check.outputs.has_changesets == 'true'
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # Bootstrap: pull just .github/actions so the local composite below can
+      # resolve. Full repo is re-fetched with the App token in the next step.
+      - name: Bootstrap composite actions
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: .github/actions
+          sparse-checkout-cone-mode: false
+
+      - name: Generate App token
+        id: app-token
+        uses: ./.github/actions/app-token
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Reset workspace before full checkout
+        run: |
+          git sparse-checkout disable 2>/dev/null || true
+          cd "$GITHUB_WORKSPACE"
+          rm -rf ./* ./.[!.]* 2>/dev/null || true
+
+      # Full checkout with the App token. The "Reset workspace" step above
+      # disables the sparse-checkout config left by the bootstrap clone and
+      # wipes the directory, so this checkout produces a complete working tree
+      # with package.json on disk for pnpm/action-setup to read packageManager.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: ./.github/actions/node-setup
+
+      - name: Resolve bot identity and configure git
+        id: bot
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          # Resolve the bot's numeric user ID via the API. Same pattern as
+          # github-actions[bot]'s 41898282 — the numeric prefix on the email
+          # is required for squash-merge author attribution to be consistent.
+          BOT_USER_ID=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          BOT_NAME="${APP_SLUG}[bot]"
+          BOT_EMAIL="${BOT_USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+
+          git config --global user.name      "$BOT_NAME"
+          git config --global user.email     "$BOT_EMAIL"
+          git config --global format.signOff true
+
+          {
+            echo "bot-name=$BOT_NAME"
+            echo "bot-email=$BOT_EMAIL"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create Version PR
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1
+        with:
+          version: pnpm changeset version
+          # commitMode: github-api routes commits through the GitHub REST API
+          # instead of `git commit` on the runner. Commits made via the API
+          # using an App-installation token are signed with GitHub's internal
+          # GPG key and show as Verified — which is required by the branch
+          # protection rule "Require signed commits" on main.
+          # Author/committer attribution follows the token owner, so commits
+          # show up as lazyconfig-app[bot], not github-actions[bot].
+          commitMode: github-api
+          # format.signOff handles the trailer on commits made via `git commit`
+          # internally by the action. The explicit Signed-off-by below is a
+          # belt-and-braces in case the action's internal commit path skips it.
+          commit: |
+            chore(release): version packages
+
+            Signed-off-by: ${{ steps.bot.outputs.bot-name }} <${{ steps.bot.outputs.bot-email }}>
+          title: "chore(release): version packages"
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

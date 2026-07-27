@@ -1,0 +1,170 @@
+name: Release
+
+# Publishes packages to npm. Triggered manually (workflow_dispatch) from the
+# Actions UI, normally right after the Version PR is merged into main. Merging
+# the Version PR does not publish by itself; a maintainer runs this workflow to
+# publish. Does not re-run tests — ci.yml already validated main under branch
+# protection. See CONTRIBUTING.md ("Release Pipeline") for the full flow.
+#
+# Only users with write access can dispatch this workflow, and the `release`
+# environment can add required reviewers — that is the control over who may
+# publish.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# npm auth is OIDC (Trusted Publishers), not a stored NPM_TOKEN. A short-lived
+# App token (see job steps) replaces GITHUB_TOKEN for Release creation.
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # `name` must match the Trusted Publisher's "Environment name" on every
+    # package on npmjs.com; changing it breaks OIDC for all of them.
+    environment:
+      name: release
+      url: https://www.npmjs.com/org/${{ github.repository_owner }}
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      # Pull only .github/actions so the local composite resolves; the full
+      # tree is fetched with the App token after the token step.
+      - name: Bootstrap composite actions
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: .github/actions
+          sparse-checkout-cone-mode: false
+
+      - name: Generate App token
+        id: app-token
+        uses: ./.github/actions/app-token
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      # Undo the sparse-checkout so the next checkout produces a full tree.
+      - name: Reset workspace before full checkout
+        run: |
+          git sparse-checkout disable 2>/dev/null || true
+          cd "$GITHUB_WORKSPACE"
+          rm -rf ./* ./.[!.]* 2>/dev/null || true
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: ./.github/actions/node-setup
+        with:
+          registry-url: https://registry.npmjs.org
+
+      # Abort if every non-private package version is already on npm. That means
+      # there is nothing to release on this ref (e.g. dispatched before the
+      # Version PR was merged, or after a prior publish), and changeset publish
+      # would otherwise exit green having done nothing. Asks the registry
+      # directly rather than diffing git history.
+      - name: Verify there is something to publish
+        run: |
+          # not -e: npm view exits non-zero for unpublished versions, which is
+          # the expected "publishable" case rather than an error.
+          set -uo pipefail
+          PUBLISHABLE=0
+          for pkg in packages/*/package.json; do
+            [ -f "$pkg" ] || continue
+            [ "$(jq -r '.private // false' "$pkg")" = "true" ] && continue
+
+            name=$(jq -r '.name // empty' "$pkg")
+            version=$(jq -r '.version // empty' "$pkg")
+            [ -z "$name" ] || [ -z "$version" ] && continue
+
+            view_out=$(npm view "${name}@${version}" version 2>/tmp/npmerr) || true
+            if [ -n "$view_out" ]; then
+              echo "::notice::${name}@${version} already on npm."
+            elif grep -qiE 'E404|not found|no match|is not in this registry' /tmp/npmerr \
+              || ! [ -s /tmp/npmerr ]; then
+              echo "::notice::${name}@${version} not on npm yet — publishable."
+              PUBLISHABLE=1
+            else
+              # Inconclusive (e.g. network error): do not assume publishable.
+              echo "::error::Could not determine npm status for ${name}@${version}:"
+              cat /tmp/npmerr
+              exit 1
+            fi
+          done
+          if [ "$PUBLISHABLE" -eq 0 ]; then
+            echo "::error::Nothing to publish: every non-private package version"
+            echo "::error::is already on npm. Was the Version PR merged into main"
+            echo "::error::before dispatching this workflow?"
+            exit 1
+          fi
+
+      # Trusted Publishing needs npm >= 11.5.1; pnpm bundles an older npm.
+      - name: Ensure npm CLI supports trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish packages and create GitHub Releases
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1
+        with:
+          publish: pnpm changeset publish
+          # Routes the per-package tags through the GitHub API so they're signed
+          # (required by "Require signed commits" on main).
+          commitMode: github-api
+        env:
+          # No NODE_AUTH_TOKEN — OIDC handles npm auth via id-token: write.
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      # Pair with release-reminder.yml: closes any open "Release pending" issue
+      # so the next reminder cycle starts clean. Never fails the workflow — a
+      # successful publish must not be reported as a failed run because of an
+      # issue-close hiccup.
+      - name: Close release-pending issues
+        if: success()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          # Use REST list + jq title filter rather than `--search`: GitHub's
+          # search index is asynchronous and can lag behind issue creation by
+          # minutes, so a Release-pending issue opened by release-reminder.yml
+          # shortly before this workflow dispatches may not yet appear in
+          # search results. REST list is read-after-write consistent.
+          numbers=$(gh issue list \
+            --repo "$REPO" \
+            --label release \
+            --state open \
+            --limit 50 \
+            --json number,title \
+            --jq '.[] | select(.title | startswith("Release pending")) | .number')
+          if [ -z "$numbers" ]; then
+            echo "No open 'Release pending' issues found."
+            exit 0
+          fi
+          echo "Closing issues:"
+          echo "$numbers"
+          while IFS= read -r n; do
+            [ -z "$n" ] && continue
+            gh issue close "$n" \
+              --repo "$REPO" \
+              --comment "Closed by successful \`release.yml\` run: ${RUN_URL}"
+          done <<< "$numbers"
