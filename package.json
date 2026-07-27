@@ -1,0 +1,46 @@
+{
+	"name": "@lazyconfig/monorepo",
+	"version": "1.0.0",
+	"type": "module",
+	"description": "Shareable configuration packages for ESLint, Jest, Rollup, TypeScript, Prettier, and commitlint.",
+	"scripts": {
+		"build": "turbo build",
+		"test": "turbo test",
+		"typecheck": "turbo typecheck",
+		"lint": "eslint .",
+		"dev": "turbo dev",
+		"clean": "turbo clean && rimraf .turbo",
+		"clean:reset": "pnpm clean && rimraf **/**/node_modules .turbo pnpm-lock.yaml node_modules",
+		"prepare": "husky"
+	},
+	"devDependencies": {
+		"@changesets/changelog-github": "catalog:",
+		"@changesets/cli": "catalog:",
+		"@commitlint/cli": "catalog:",
+		"@commitlint/config-conventional": "catalog:",
+		"@lazyconfig/commitlint": "workspace:*",
+		"@lazyconfig/eslint": "workspace:*",
+		"@lazyconfig/prettier": "workspace:*",
+		"@lazyconfig/scripts": "workspace:*",
+		"@eslint/js": "catalog:",
+		"eslint": "catalog:",
+		"eslint-config-prettier": "catalog:",
+		"eslint-plugin-n": "catalog:",
+		"globals": "catalog:",
+		"husky": "catalog:",
+		"lint-staged": "catalog:",
+		"prettier": "catalog:",
+		"rimraf": "catalog:",
+		"turbo": "catalog:",
+		"typescript": "catalog:",
+		"typescript-eslint": "catalog:"
+	},
+	"packageManager": "pnpm@11.5.2",
+	"engines": {
+		"node": ">=22.0.0",
+		"pnpm": ">=10.0.0"
+	},
+	"author": "ruben-omh",
+	"license": "MIT",
+	"private": true
+}

@@ -1,0 +1,38 @@
+{
+	"$schema": "https://turborepo.dev/schema.json",
+	"tasks": {
+		"build": {
+			"description": "Compiles TypeScript source to dist/. Workspace dependency builds run first (^build).",
+			"dependsOn": ["^build", "typecheck"],
+			"outputs": ["dist/**", "out-tsc/**"],
+			"inputs": ["src/**", "tsconfig*.json", "package.json"],
+			"outputLogs": "new-only",
+			"cache": true
+		},
+		"test": {
+			"description": "Runs the test suite. Workspace dependency builds run first (^build) — required for packages that expose only dist/.",
+			"dependsOn": ["^build"],
+			"outputs": ["coverage/**", "reports/**"],
+			"inputs": ["src/**", "test/**", "jest.config.*", "tsconfig*.json", "package.json"],
+			"outputLogs": "new-only",
+			"cache": true
+		},
+		"dev": {
+			"description": "Watches source for changes. Workspace dependency builds run first (^build). Persistent and never cached.",
+			"dependsOn": ["^build"],
+			"persistent": true,
+			"cache": false
+		},
+		"typecheck": {
+			"description": "Runs TypeScript compiler in noEmit mode to check for type errors. Workspace dependency builds run first (^build) so their emitted .d.ts files resolve.",
+			"dependsOn": ["^build"],
+			"outputs": ["tsconfig.*.tsbuildinfo"],
+			"inputs": ["src/**", "test/**", "jest.config.*", "tsconfig*.json", "package.json"],
+			"cache": true
+		},
+		"clean": {
+			"description": "Removes build artifacts, coverage, and reports. Never cached.",
+			"cache": false
+		}
+	}
+}
