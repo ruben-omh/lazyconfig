@@ -1,0 +1,27 @@
+{
+	"name": "@lazyconfig/scripts",
+	"type": "commonjs",
+	"version": "1.0.0",
+	"description": "Internal monorepo scripts for building and maintaining lazyconfig packages.",
+	"bin": {
+		"build-types": "./src/build-types.js",
+		"commit-signoff": "./src/commit-signoff.js"
+	},
+	"scripts": {
+		"build-types": "node ./src/build-types.js --mock",
+		"commit-signoff": "node ./src/commit-signoff.js --mock"
+	},
+	"dependencies": {
+		"consola": "catalog:",
+		"yargs": "catalog:"
+	},
+	"sideEffects": false,
+	"packageManager": "pnpm@11.5.2",
+	"engines": {
+		"node": ">=22.0.0",
+		"pnpm": ">=10.0.0"
+	},
+	"author": "ruben-omh",
+	"license": "MIT",
+	"private": true
+}
