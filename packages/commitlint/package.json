@@ -1,0 +1,43 @@
+{
+	"name": "@lazyconfig/commitlint",
+	"version": "0.0.0",
+	"description": "Shared, production-ready Commitlint configuration for enforcing consistent conventional commit messages.",
+	"files": [
+		"base.json",
+		"package.json",
+		"README.md",
+		"LICENSE"
+	],
+	"exports": {
+		".": "./base.json",
+		"./base": "./base.json",
+		"./package.json": "./package.json"
+	},
+	"keywords": [
+		"commitlint",
+		"config",
+		"commit",
+		"conventional",
+		"commitlint-config",
+		"lazyconfig"
+	],
+	"packageManager": "pnpm@11.5.2",
+	"engines": {
+		"node": ">=22.0.0",
+		"pnpm": ">=10.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"homepage": "https://github.com/ruben-omh/lazyconfig/tree/main/packages/commitlint#readme",
+	"bugs": {
+		"url": "https://github.com/ruben-omh/lazyconfig/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ruben-omh/lazyconfig",
+		"directory": "packages/commitlint"
+	},
+	"author": "ruben-omh",
+	"license": "MIT"
+}
