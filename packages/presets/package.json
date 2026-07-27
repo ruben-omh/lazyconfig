@@ -1,0 +1,72 @@
+{
+	"name": "@lazyconfig/presets",
+	"version": "0.0.0",
+	"description": "Meta-package that bundles all lazyconfig presets for a single-install setup.",
+	"type": "module",
+	"files": [
+		"src",
+		"package.json",
+		"README.md",
+		"LICENSE"
+	],
+	"exports": {
+		"./package.json": "./package.json",
+		"./rollup": {
+			"types": "./src/rollup.d.ts",
+			"default": "./src/rollup.js"
+		},
+		"./jest": {
+			"types": "./src/jest.d.ts",
+			"default": "./src/jest.js"
+		},
+		"./eslint": {
+			"types": "./src/eslint.d.ts",
+			"default": "./src/eslint.js"
+		},
+		"./tsconfig/base": "./src/tsconfig/base.json",
+		"./tsconfig/lib": "./src/tsconfig/lib.json",
+		"./tsconfig/node": "./src/tsconfig/node.json",
+		"./tsconfig/react": "./src/tsconfig/react.json",
+		"./tsconfig/env": "./src/tsconfig/env.d.ts",
+		"./api-extractor": "./src/api-extractor.json",
+		"./prettier": "./src/prettier.json",
+		"./commitlint": "./src/commitlint.json"
+	},
+	"scripts": {
+		"build": "node scripts/copy-configs.mjs",
+		"test": "node --test --test-reporter=spec \"test/**/*.test.mjs\""
+	},
+	"dependencies": {
+		"@lazyconfig/api-extractor": "workspace:*",
+		"@lazyconfig/commitlint": "workspace:*",
+		"@lazyconfig/eslint": "workspace:*",
+		"@lazyconfig/jest": "workspace:*",
+		"@lazyconfig/prettier": "workspace:*",
+		"@lazyconfig/rollup": "workspace:*",
+		"@lazyconfig/tsconfig": "workspace:*"
+	},
+	"keywords": [
+		"lazyconfig",
+		"presets",
+		"meta"
+	],
+	"packageManager": "pnpm@11.5.2",
+	"engines": {
+		"node": ">=22.0.0",
+		"pnpm": ">=10.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"homepage": "https://github.com/ruben-omh/lazyconfig/tree/main/packages/presets#readme",
+	"bugs": {
+		"url": "https://github.com/ruben-omh/lazyconfig/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ruben-omh/lazyconfig",
+		"directory": "packages/presets"
+	},
+	"author": "ruben-omh",
+	"license": "MIT"
+}
