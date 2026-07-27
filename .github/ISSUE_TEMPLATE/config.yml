@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/ruben-omh/lazyconfig#readme
+    about: Check the README and package docs first — many questions are answered there.
+  - name: Community Discussions
+    url: https://github.com/ruben-omh/lazyconfig/discussions
+    about: For general questions, open-ended ideas, or help. Issues are for actionable bugs and concrete proposals.
+  - name: Security advisories
+    url: https://github.com/ruben-omh/lazyconfig/security/advisories/new
+    about: For security vulnerabilities, please report privately here instead of opening a public issue.

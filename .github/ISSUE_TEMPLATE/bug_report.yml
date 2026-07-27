@@ -1,0 +1,126 @@
+name: Bug Report
+description: Report a reproducible issue or unexpected behavior.
+title: "<short description of the bug>"
+labels: ["bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report.
+
+        Before submitting, please check the
+        [existing issues](https://github.com/ruben-omh/lazyconfig/issues?q=is%3Aissue)
+        and [discussions](https://github.com/ruben-omh/lazyconfig/discussions)
+        to avoid duplicates.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checks
+      options:
+        - label: I have searched existing issues and discussions for duplicates.
+          required: true
+        - label: I am running a supported Node.js version (22 or 24).
+          required: true
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Affected package
+      description: Which package is affected? Select the primary one — mention others in the description if relevant.
+      options:
+        - "@lazyconfig/api-extractor"
+        - "@lazyconfig/cli"
+        - "@lazyconfig/commitlint"
+        - "@lazyconfig/eslint"
+        - "@lazyconfig/jest"
+        - "@lazyconfig/prettier"
+        - "@lazyconfig/presets"
+        - "@lazyconfig/rollup"
+        - "@lazyconfig/tsconfig"
+        - Multiple packages
+        - Repo-level (tooling, CI, docs)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: The version (or commit SHA) where you observed the bug.
+      placeholder: "e.g. 1.4.2 or abc1234"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: node-version
+    attributes:
+      label: Node.js version
+      options:
+        - "22"
+        - "24"
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: input
+    id: pnpm-version
+    attributes:
+      label: pnpm version
+      placeholder: "e.g. 10.4.0"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "e.g. macOS 15.2, Ubuntu 24.04, Windows 11"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide a minimal sequence that triggers the bug. A link to a minimal reproduction repo is even better.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or output
+      description: Paste relevant stack traces, error messages, or terminal output. Will be rendered as a code block — no backticks needed.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, config files, related issues, or anything else that helps.
+    validations:
+      required: false

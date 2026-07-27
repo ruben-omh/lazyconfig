@@ -1,0 +1,104 @@
+name: Refactor Request
+description: Propose internal code-quality improvements without changing user-facing behavior.
+title: "<short description of the refactor>"
+labels: ["refactor"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a refactor.
+
+        A refactor must not change observable behavior — if behavior
+        changes, open a [feature request](./feature_request.yml) or
+        [bug report](./bug_report.yml) instead.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checks
+      options:
+        - label: I have searched existing issues and discussions for duplicates.
+          required: true
+        - label: This refactor does not change user-facing behavior.
+          required: true
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Affected package
+      description: Which package would this refactor affect?
+      options:
+        - "@lazyconfig/api-extractor"
+        - "@lazyconfig/cli"
+        - "@lazyconfig/commitlint"
+        - "@lazyconfig/eslint"
+        - "@lazyconfig/jest"
+        - "@lazyconfig/prettier"
+        - "@lazyconfig/presets"
+        - "@lazyconfig/rollup"
+        - "@lazyconfig/tsconfig"
+        - Multiple packages
+        - Repo-level (tooling, CI, docs)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: motivation
+    attributes:
+      label: Primary motivation
+      description: What kind of improvement is this?
+      options:
+        - Readability
+        - Maintainability
+        - Performance
+        - Testability
+        - Type safety
+        - Dependency reduction
+        - Other (explain in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What part of the codebase should be refactored? File paths, modules, or functions help.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed changes
+      description: Describe the structural improvements you want to make.
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Expected outcome
+      description: What will be measurably better after this refactor? (e.g. "removes 3 transitive deps", "reduces CLI startup by ~200ms", "consolidates 4 duplicated helpers into 1").
+    validations:
+      required: true
+
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Regression risk
+      description: How likely is this to break something subtle, despite preserving the public API?
+      options:
+        - Low — isolated change, well tested
+        - Medium — touches shared code
+        - High — touches hot paths or undocumented behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links to related issues, architecture notes, or prior discussion.
+    validations:
+      required: false

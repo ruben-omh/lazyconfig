@@ -1,0 +1,89 @@
+name: Feature Request
+description: Suggest a new feature, enhancement, or developer-experience improvement.
+title: "<short description of the feature>"
+labels: ["enhancement"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a feature.
+
+        Before submitting, please check the
+        [existing issues](https://github.com/ruben-omh/lazyconfig/issues?q=is%3Aissue)
+        and [discussions](https://github.com/ruben-omh/lazyconfig/discussions)
+        to avoid duplicates. For open-ended ideas or "what do you think
+        about…" questions, please start a discussion instead.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checks
+      options:
+        - label: I have searched existing issues and discussions for duplicates.
+          required: true
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Affected package
+      description: Which package would this feature affect?
+      options:
+        - "@lazyconfig/api-extractor"
+        - "@lazyconfig/cli"
+        - "@lazyconfig/commitlint"
+        - "@lazyconfig/eslint"
+        - "@lazyconfig/jest"
+        - "@lazyconfig/prettier"
+        - "@lazyconfig/presets"
+        - "@lazyconfig/rollup"
+        - "@lazyconfig/tsconfig"
+        - Multiple packages
+        - New package
+        - Repo-level (tooling, CI, docs)
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this feature solve? Describe the pain point or limitation, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the desired behavior and the expected outcome. Include API sketches or example usage if helpful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you consider, and why did you reject them?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Is this a breaking change?
+      description: Does this feature require changes to existing public APIs or default behavior?
+      options:
+        - "No"
+        - "Yes"
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links to related issues, prior art in other libraries, mockups, or anything else that helps.
+    validations:
+      required: false
