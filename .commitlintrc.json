@@ -1,0 +1,29 @@
+{
+	"extends": ["@lazyconfig/commitlint"],
+	"rules": {
+		"scope-enum": [
+			2,
+			"always",
+			[
+				"api-extractor",
+				"contributing",
+				"changeset",
+				"claude",
+				"cli",
+				"ci",
+				"commitlint",
+				"deps",
+				"eslint",
+				"github",
+				"jest",
+				"presets",
+				"prettier",
+				"release",
+				"repo",
+				"rollup",
+				"scripts",
+				"tsconfig"
+			]
+		]
+	}
+}
