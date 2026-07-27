@@ -1,0 +1,42 @@
+{
+	"name": "@lazyconfig/prettier",
+	"version": "0.0.0",
+	"description": "Shared, production-ready Prettier preset for consistent code formatting.",
+	"files": [
+		"base.json",
+		"package.json",
+		"README.md",
+		"LICENSE"
+	],
+	"exports": {
+		".": "./base.json",
+		"./base": "./base.json",
+		"./package.json": "./package.json"
+	},
+	"keywords": [
+		"prettier",
+		"config",
+		"prettier-config",
+		"prettier-lazyconfig",
+		"lazyconfig"
+	],
+	"packageManager": "pnpm@11.5.2",
+	"engines": {
+		"node": ">=22.0.0",
+		"pnpm": ">=10.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"homepage": "https://github.com/ruben-omh/lazyconfig/tree/main/packages/prettier#readme",
+	"bugs": {
+		"url": "https://github.com/ruben-omh/lazyconfig/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ruben-omh/lazyconfig",
+		"directory": "packages/prettier"
+	},
+	"author": "ruben-omh",
+	"license": "MIT"
+}
