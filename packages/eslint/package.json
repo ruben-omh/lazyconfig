@@ -1,0 +1,125 @@
+{
+	"name": "@lazyconfig/eslint",
+	"version": "0.0.0",
+	"description": "Reusable, composable ESLint flat config presets for JavaScript, TypeScript, React, and Node.js projects.",
+	"type": "module",
+	"files": [
+		"dist",
+		"package.json",
+		"README.md",
+		"LICENSE"
+	],
+	"main": "./dist/lazyconfig.eslint.index.cjs",
+	"module": "./dist/lazyconfig.eslint.index.mjs",
+	"types": "./dist/lazyconfig.eslint.index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/lazyconfig.eslint.index.d.ts",
+			"import": {
+				"types": "./dist/lazyconfig.eslint.index.d.mts",
+				"default": "./dist/lazyconfig.eslint.index.mjs"
+			},
+			"require": {
+				"types": "./dist/lazyconfig.eslint.index.d.cts",
+				"default": "./dist/lazyconfig.eslint.index.cjs"
+			}
+		},
+		"./package.json": "./package.json"
+	},
+	"scripts": {
+		"typecheck": "tsc -b --noEmit",
+		"dts": "build-types --tsc tsconfig.lib.json --aec api-extractor.json --ext mts cts",
+		"build": "pnpm dts && rollup --config",
+		"dev": "tsc -p tsconfig.lib.json --watch",
+		"clean": "rimraf out-tsc dist coverage reports .turbo",
+		"test": "jest"
+	},
+	"devDependencies": {
+		"@babel/core": "catalog:",
+		"@babel/preset-env": "catalog:",
+		"@babel/preset-typescript": "catalog:",
+		"@lazyconfig/api-extractor": "workspace:*",
+		"@lazyconfig/jest": "workspace:*",
+		"@lazyconfig/rollup": "workspace:*",
+		"@lazyconfig/tsconfig": "workspace:*",
+		"@microsoft/api-extractor": "catalog:",
+		"@swc/core": "catalog:",
+		"@swc/jest": "catalog:",
+		"@types/eslint-plugin-jsx-a11y": "catalog:",
+		"@types/jest": "catalog:",
+		"@types/node": "catalog:",
+		"babel-plugin-annotate-pure-calls": "catalog:",
+		"eslint-plugin-jsx-a11y": "catalog:",
+		"eslint-plugin-react": "catalog:",
+		"eslint-plugin-react-hooks": "catalog:",
+		"jest": "catalog:",
+		"jest-junit": "catalog:",
+		"rimraf": "catalog:",
+		"rollup": "catalog:",
+		"typescript": "catalog:"
+	},
+	"peerDependencies": {
+		"@eslint/js": "^10",
+		"eslint": "^10",
+		"eslint-config-prettier": "^10",
+		"eslint-plugin-jsx-a11y": "^6",
+		"eslint-plugin-n": "^18",
+		"eslint-plugin-react": "^7",
+		"eslint-plugin-react-hooks": "^5",
+		"globals": "^17",
+		"typescript-eslint": "^8"
+	},
+	"peerDependenciesMeta": {
+		"globals": {
+			"optional": true
+		},
+		"typescript-eslint": {
+			"optional": true
+		},
+		"eslint-plugin-react": {
+			"optional": true
+		},
+		"eslint-plugin-react-hooks": {
+			"optional": true
+		},
+		"eslint-plugin-jsx-a11y": {
+			"optional": true
+		},
+		"eslint-plugin-n": {
+			"optional": true
+		},
+		"eslint-config-prettier": {
+			"optional": true
+		}
+	},
+	"keywords": [
+		"eslint",
+		"eslint-config",
+		"eslint-10",
+		"flat-config",
+		"typescript",
+		"react",
+		"node",
+		"lazyconfig"
+	],
+	"sideEffects": false,
+	"packageManager": "pnpm@11.5.2",
+	"engines": {
+		"node": ">=22.0.0",
+		"pnpm": ">=10.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"homepage": "https://github.com/ruben-omh/lazyconfig/tree/main/packages/eslint#readme",
+	"bugs": {
+		"url": "https://github.com/ruben-omh/lazyconfig/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ruben-omh/lazyconfig",
+		"directory": "packages/eslint"
+	},
+	"author": "ruben-omh",
+	"license": "MIT"
+}

@@ -1,0 +1,36 @@
+{
+	"$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+	"extends": "@lazyconfig/api-extractor/base.json",
+	"projectFolder": ".",
+	"mainEntryPointFilePath": "<projectFolder>/out-tsc/index.d.ts",
+	"dtsRollup": {
+		"enabled": true,
+		"untrimmedFilePath": "<projectFolder>/dist/lazyconfig.eslint.index.d.ts"
+	},
+	"messages": {
+		"compilerMessageReporting": {
+			"default": {
+				"logLevel": "warning"
+			}
+		},
+		"extractorMessageReporting": {
+			"default": {
+				"logLevel": "warning"
+			},
+			"ae-missing-release-tag": {
+				"logLevel": "none"
+			},
+			"ae-undocumented": {
+				"logLevel": "none"
+			},
+			"ae-wrong-input-file-type": {
+				"logLevel": "none"
+			}
+		},
+		"tsdocMessageReporting": {
+			"default": {
+				"logLevel": "none"
+			}
+		}
+	}
+}
