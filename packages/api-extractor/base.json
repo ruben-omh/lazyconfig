@@ -1,0 +1,55 @@
+{
+	"$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+	"projectFolder": ".",
+	"mainEntryPointFilePath": "<projectFolder>/out-tsc/index.d.ts",
+	"bundledPackages": [],
+	"newlineKind": "lf",
+	"enumMemberOrder": "preserve",
+	"compiler": {
+		"tsconfigFilePath": "<projectFolder>/tsconfig.lib.json",
+		"overrideTsconfig": {
+			"compilerOptions": {
+				"moduleResolution": "Bundler",
+				"target": "ES2022",
+				"lib": ["ES2022"],
+				"types": ["node"],
+				"skipLibCheck": true
+			}
+		}
+	},
+	"apiReport": {
+		"enabled": false
+	},
+	"docModel": {
+		"enabled": false
+	},
+	"dtsRollup": {
+		"enabled": true
+	},
+	"tsdocMetadata": {
+		"enabled": false
+	},
+	"messages": {
+		"compilerMessageReporting": {
+			"default": {
+				"logLevel": "warning"
+			}
+		},
+		"extractorMessageReporting": {
+			"default": {
+				"logLevel": "warning"
+			},
+			"ae-missing-release-tag": {
+				"logLevel": "none"
+			},
+			"ae-undocumented": {
+				"logLevel": "none"
+			}
+		},
+		"tsdocMessageReporting": {
+			"default": {
+				"logLevel": "none"
+			}
+		}
+	}
+}
