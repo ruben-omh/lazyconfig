@@ -1,0 +1,9 @@
+{
+	"extends": "@lazyconfig/tsconfig/lib",
+	"compilerOptions": {
+		"outDir": "out-tsc",
+		"rootDir": "src",
+		"types": ["node"]
+	},
+	"include": ["src"]
+}

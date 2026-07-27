@@ -1,0 +1,10 @@
+{
+	"$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+	"extends": "@lazyconfig/api-extractor/base.json",
+	"projectFolder": ".",
+	"mainEntryPointFilePath": "<projectFolder>/out-tsc/index.d.ts",
+	"dtsRollup": {
+		"enabled": true,
+		"untrimmedFilePath": "<projectFolder>/dist/lazyconfig.jest.index.d.ts"
+	}
+}
