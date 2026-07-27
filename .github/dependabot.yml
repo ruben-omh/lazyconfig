@@ -1,0 +1,67 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: UTC
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+    reviewers:
+      - ruben-omh
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: UTC
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+    reviewers:
+      - ruben-omh
+    open-pull-requests-limit: 10
+    groups:
+      typescript:
+        patterns:
+          - "typescript"
+          - "typescript-eslint"
+          - "@typescript-eslint/*"
+          - "@types/*"
+      eslint:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@eslint/*"
+          - "eslint-plugin-*"
+          - "eslint-config-*"
+          - "globals"
+      jest:
+        patterns:
+          - "jest"
+          - "jest-*"
+          - "@types/jest"
+          - "@swc/jest"
+          - "@swc/core"
+          - "jest-environment-*"
+      rollup:
+        patterns:
+          - "rollup"
+          - "@rollup/*"
+      babel:
+        patterns:
+          - "@babel/*"
+          - "babel-*"
+      changesets:
+        patterns:
+          - "@changesets/*"
+      commitlint:
+        patterns:
+          - "@commitlint/*"

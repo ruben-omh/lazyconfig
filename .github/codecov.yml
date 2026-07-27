@@ -1,0 +1,77 @@
+codecov:
+  branch: main
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        informational: false
+    patch:
+      default:
+        target: 80%
+        threshold: 0%
+
+flag_management:
+  default_rules:
+    carryforward: true
+    statuses:
+      - type: project
+        target: auto
+        threshold: 1%
+      - type: patch
+        target: 80%
+  individual_flags:
+    - name: cli
+      paths: [packages/cli/**]
+    - name: eslint
+      paths: [packages/eslint/**]
+    - name: jest
+      paths: [packages/jest/**]
+    - name: rollup
+      paths: [packages/rollup/**]
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: auto
+        threshold: 1%
+      - type: patch
+        target: 80%
+  individual_components:
+    - component_id: cli
+      name: "@lazyconfig/cli"
+      paths: [packages/cli/**]
+    - component_id: eslint
+      name: "@lazyconfig/eslint"
+      paths: [packages/eslint/**]
+    - component_id: jest
+      name: "@lazyconfig/jest"
+      paths: [packages/jest/**]
+    - component_id: rollup
+      name: "@lazyconfig/rollup"
+      paths: [packages/rollup/**]
+
+ignore:
+  - "**/node_modules"
+  - "**/dist"
+  - "**/coverage"
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/test/**"
+  - "scripts/**"
+
+comment:
+  layout: "header, diff, components, files, footer"
+  behavior: default
+  require_changes: false
+  show_carryforward_flags: true
