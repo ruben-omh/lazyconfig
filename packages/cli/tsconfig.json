@@ -1,0 +1,4 @@
+{
+	"include": [],
+	"references": [{ "path": "./tsconfig.lib.json" }, { "path": "./tsconfig.test.json" }]
+}

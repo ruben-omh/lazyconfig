@@ -1,0 +1,76 @@
+{
+	"name": "@lazyconfig/cli",
+	"version": "0.0.0",
+	"description": "Shared CLI scripts for automating and enforcing development workflows.",
+	"type": "module",
+	"files": [
+		"dist",
+		"package.json",
+		"README.md",
+		"LICENSE"
+	],
+	"bin": {
+		"lazyconfig": "./dist/lazyconfig.cli.cjs"
+	},
+	"scripts": {
+		"typecheck": "tsc -b --noEmit",
+		"build": "rollup --config",
+		"dev": "tsc -p tsconfig.lib.json --watch",
+		"clean": "rimraf out-tsc dist coverage reports .turbo",
+		"test": "jest"
+	},
+	"dependencies": {
+		"consola": "catalog:",
+		"yargs": "catalog:"
+	},
+	"devDependencies": {
+		"@babel/core": "catalog:",
+		"@babel/preset-env": "catalog:",
+		"@babel/preset-typescript": "catalog:",
+		"@lazyconfig/jest": "workspace:*",
+		"@lazyconfig/rollup": "workspace:*",
+		"@lazyconfig/tsconfig": "workspace:*",
+		"@rollup/plugin-babel": "catalog:",
+		"@rollup/plugin-node-resolve": "catalog:",
+		"@swc/core": "catalog:",
+		"@swc/jest": "catalog:",
+		"@types/jest": "catalog:",
+		"@types/node": "catalog:",
+		"@types/yargs": "catalog:",
+		"babel-plugin-annotate-pure-calls": "catalog:",
+		"jest": "catalog:",
+		"jest-junit": "catalog:",
+		"rimraf": "catalog:",
+		"rollup": "catalog:",
+		"typescript": "catalog:"
+	},
+	"keywords": [
+		"cli",
+		"hooks",
+		"git-hooks",
+		"typescript",
+		"api-extractor",
+		"build",
+		"lazyconfig"
+	],
+	"sideEffects": false,
+	"packageManager": "pnpm@11.5.2",
+	"engines": {
+		"node": ">=22.0.0",
+		"pnpm": ">=10.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"homepage": "https://github.com/ruben-omh/lazyconfig/tree/main/packages/cli#readme",
+	"bugs": {
+		"url": "https://github.com/ruben-omh/lazyconfig/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ruben-omh/lazyconfig",
+		"directory": "packages/cli"
+	},
+	"author": "ruben-omh",
+	"license": "MIT"
+}
