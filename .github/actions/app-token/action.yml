@@ -1,0 +1,37 @@
+name: App Token
+description: >
+  Generates a short-lived (1h) installation token for the repo's GitHub App
+  using APP_CLIENT_ID + APP_PRIVATE_KEY. Used in place of the default
+  GITHUB_TOKEN for steps that must (a) trigger subsequent workflows, or
+  (b) make commits/refs that need to be attributed to the bot identity.
+  No long-lived PAT to rotate or leak.
+
+  Callers must pass `client-id` and `private-key` explicitly because
+  composite actions cannot access `vars` or `secrets` directly.
+  Centralising the underlying action pin here means bumping the SHA
+  is a one-line change instead of three.
+
+inputs:
+  client-id:
+    description: GitHub App client ID (typically from vars.APP_CLIENT_ID).
+    required: true
+  private-key:
+    description: GitHub App private key (typically from secrets.APP_PRIVATE_KEY).
+    required: true
+
+outputs:
+  token:
+    description: Installation access token (valid ~1 hour).
+    value: ${{ steps.generate.outputs.token }}
+  app-slug:
+    description: Slug of the GitHub App (e.g. "lazyconfig-app").
+    value: ${{ steps.generate.outputs.app-slug }}
+
+runs:
+  using: composite
+  steps:
+    - id: generate
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      with:
+        client-id: ${{ inputs.client-id }}
+        private-key: ${{ inputs.private-key }}

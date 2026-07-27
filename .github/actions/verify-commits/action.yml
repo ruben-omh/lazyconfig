@@ -1,0 +1,109 @@
+name: Verify Commits
+description: >
+  Verifies every commit on a pull request satisfies either DCO sign-off
+  (mode: dco) or GPG signature verification (mode: gpg). Commits authored
+  by trusted bots — matched on GitHub login, never on email substring —
+  are exempted.
+
+  Data is sourced from the GitHub REST API, so the action does not require
+  the repository to be checked out. Caller is responsible for providing a
+  bootstrap checkout sufficient for GitHub Actions to resolve this local
+  composite (typically sparse on .github/actions).
+
+inputs:
+  mode:
+    required: true
+    description: Verification mode. One of "dco" or "gpg".
+  pr-number:
+    required: true
+    description: Pull request number.
+  repository:
+    required: false
+    default: ${{ github.repository }}
+    description: "owner/repo (defaults to the calling repo)."
+  trusted-bots:
+    required: true
+    description: >
+      Newline-separated list of GitHub logins to exempt from the check.
+      Match is by `.author.login`, not email.
+  gh-token:
+    required: true
+    description: Token used for gh api calls (typically GITHUB_TOKEN).
+
+runs:
+  using: composite
+  steps:
+    - name: Verify commits
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+        REPOSITORY: ${{ inputs.repository }}
+        TRUSTED_BOTS: ${{ inputs.trusted-bots }}
+        GH_TOKEN: ${{ inputs.gh-token }}
+      run: |
+        set -euo pipefail
+
+        if [ "$MODE" != "dco" ] && [ "$MODE" != "gpg" ]; then
+          echo "verify-commits: unknown mode '$MODE' (expected 'dco' or 'gpg')" >&2
+          exit 2
+        fi
+
+        # Build the trusted-bot allowlist as a JSON array so jq can do the
+        # filtering atomically. Empty / whitespace-only lines are stripped.
+        allowlist_json=$(printf '%s\n' "$TRUSTED_BOTS" \
+          | sed '/^[[:space:]]*$/d' \
+          | awk '{$1=$1};1' \
+          | jq -R . | jq -s .)
+
+        # Single API call drives both modes: .commit.message for DCO,
+        # .commit.verification.verified for GPG. --paginate handles PRs
+        # with more than 100 commits.
+        commits=$(gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}/commits" --paginate)
+
+        # Log skipped bot commits for audit / debugging.
+        echo "$commits" | jq -r --argjson bots "$allowlist_json" --arg mode "$MODE" '
+          .[]
+          | select(.author.login as $login | $bots | index($login))
+          | "Skipping \($mode) check for trusted bot commit: \(.sha) (\(.author.login))"
+        '
+
+        if [ "$MODE" = "dco" ]; then
+          # Split the message into lines and check each one with a literal
+          # prefix match. Avoids relying on jq/Oniguruma's `^` anchor
+          # behaviour (which doesn't reliably match line starts) and is
+          # safe against CRLF line endings via rtrimstr("\r").
+          missing=$(echo "$commits" | jq -r --argjson bots "$allowlist_json" '
+            .[]
+            | select(.author.login as $login | ($bots | index($login)) | not)
+            | select(
+                (.commit.message
+                  | split("\n")
+                  | any(rtrimstr("\r") | startswith("Signed-off-by:"))
+                ) | not
+              )
+            | "  - \(.sha)  \(.commit.message | split("\n")[0])"
+          ')
+          label="DCO Signed-off-by line"
+          hint="Fix with: git rebase --signoff main"
+        else
+          missing=$(echo "$commits" | jq -r --argjson bots "$allowlist_json" '
+            .[]
+            | select(.author.login as $login | ($bots | index($login)) | not)
+            | select(.commit.verification.verified != true)
+            | "  - \(.sha)"
+          ')
+          label="valid GPG signature"
+          hint=$'Sign commits with:          git commit -S -s\nRe-sign existing commits:   git rebase --exec \'git commit --amend --no-edit -S -s\' main'
+        fi
+
+        if [ -n "$missing" ]; then
+          echo ""
+          echo "The following commits are missing a ${label}:"
+          echo "$missing"
+          echo ""
+          echo "$hint"
+          exit 1
+        fi
+
+        echo "All commits carry a ${label}."
