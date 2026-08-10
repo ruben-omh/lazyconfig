@@ -104,7 +104,7 @@ House style:
 - Top-of-file helpers, separated by `// --- helpers ---` / `// --- tests ---` banners.
 - Helpers favour structural finders (`findByRule`, `findByPlugin`, `findIgnoresEntry`) and factory functions (`base()` for required-field configs) over deep snapshot diffs — snapshots rot on every framework version bump.
 - Group by feature flag with nested `describe`s (`defaults`, `formats`, `typescript`, `react`, …) so each opt-in's contract is readable in isolation.
-- Stub optional peers via `test/__mocks__/<peer>.js` + `moduleNameMapper` in the package's `jest.config.js` (see `packages/eslint`). Real peer modules are not installed in tests — `requirePeer`'s positive path is exercised through these stubs.
+- Stub optional peers via Jest's root-level `__mocks__/<peer>.js` auto-mock lookup (scoped peers go in `__mocks__/@scope/<peer>.js` — see `packages/eslint/__mocks__/eslint-plugin-n.js` and `packages/rollup/__mocks__/@rollup/plugin-babel.js`). Jest picks these up automatically for node_modules specifiers; no `moduleNameMapper` or `jest.mock()` call is needed. Real peer modules are not installed in tests — `requirePeer`'s positive path is exercised through these stubs.
 - Subdirectories like `test/resolvers/` and `test/helpers/` mirror the corresponding `src/` layout for non-`defineConfig` units (e.g. `require-peer`, rollup output/plugin resolvers).
 
 Run a single preset's suite with `pnpm --filter @lazyconfig/<pkg> test`. Coverage is enabled by default via `@lazyconfig/jest`'s preset.

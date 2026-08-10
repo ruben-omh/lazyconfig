@@ -9,11 +9,6 @@ const config = {
 		outputName: "test-results.xml",
 		suiteName: "LazyConfig ESLint test suite",
 	},
-	extends: {
-		moduleNameMapper: {
-			"^eslint-plugin-n$": "<rootDir>/test/__mocks__/eslint-plugin-n.js",
-		},
-	},
 };
 
 /** @type {import('jest').Config} */
