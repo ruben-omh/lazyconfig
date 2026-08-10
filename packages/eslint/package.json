@@ -1,6 +1,6 @@
 {
 	"name": "@lazyconfig/eslint",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Reusable, composable ESLint flat config presets for JavaScript, TypeScript, React, and Node.js projects.",
 	"type": "module",
 	"files": [

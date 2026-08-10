@@ -1,6 +1,6 @@
 {
 	"name": "@lazyconfig/prettier",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Shared, production-ready Prettier preset for consistent code formatting.",
 	"files": [
 		"base.json",
