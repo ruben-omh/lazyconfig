@@ -1,6 +1,6 @@
 {
 	"name": "@lazyconfig/api-extractor",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Shared API Extractor base configuration for generating rolled-up `.d.ts` declaration files.",
 	"files": [
 		"base.json",

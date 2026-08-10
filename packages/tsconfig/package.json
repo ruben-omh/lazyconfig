@@ -1,6 +1,6 @@
 {
 	"name": "@lazyconfig/tsconfig",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Reusable TypeScript configuration presets to standardize compiler settings.",
 	"files": [
 		"base.json",
