@@ -27,6 +27,9 @@
 		"config",
 		"lazyconfig"
 	],
+	"scripts": {
+		"build": "echo \"no build required\""
+	},
 	"packageManager": "pnpm@11.5.2",
 	"engines": {
 		"node": ">=22.0.0",
