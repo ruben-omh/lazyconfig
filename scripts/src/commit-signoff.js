@@ -2,19 +2,19 @@
 "use strict";
 
 const { join } = require("node:path");
-const { readFileSync, writeFileSync } = require("node:fs");
 const yargs = require("yargs");
 const { hideBin } = require("yargs/helpers");
 const createLogger = require("./utils/logger");
 const { runCommandSync } = require("./utils/run-command");
 
 /**
- * Appends a `Signed-off-by` trailer to the commit message if not already present.
+ * Adds a `Signed-off-by` trailer to the commit message if not already present.
  *
- * Reads the commit author's name and email from the local git config and constructs
- * a `Signed-off-by: Name <email>` footer. Exits early without modifying the file if
- * the trailer is already present. Exits with code 1 if `user.name` or `user.email`
- * is not configured.
+ * Reads the commit author's name and email from the local git config and hands the
+ * resulting `Signed-off-by: Name <email>` trailer to `git interpret-trailers`, which
+ * places it in the message's trailer block — correctly under `git commit -v`, where
+ * anything appended past the scissors line would be discarded. Repeat runs are
+ * idempotent. Exits with code 1 if `user.name` or `user.email` is not configured.
  *
  * @param {{ msgFile?: string, mock?: boolean }} [opts]
  * @param {string} [opts.msgFile] - Path to the commit message file. Git passes this as `$1`
@@ -56,22 +56,31 @@ function commitSignoff(opts = {}) {
 	const trailer = `Signed-off-by: ${name} <${email}>`;
 
 	if (mock) {
-		log.warn(`[mock] Would read commit message from ${msgFile}`);
-		log.warn(`[mock] Would append trailer "${trailer}"`);
+		log.warn(`[mock] Would add trailer "${trailer}" to ${msgFile} via git interpret-trailers`);
 		log.success("Mock run complete — no files were written.");
 		return;
 	}
 
-	const content = readFileSync(msgFile, "utf-8");
-
-	if (content.includes(trailer)) {
-		log.info("Trailer already present — skipping.");
-		return;
-	}
-
 	log.start(`Adding trailer "${trailer}" to commit message.`);
-	// Blank line before the trailer is required by the commitlint body-leading-blank rule.
-	writeFileSync(msgFile, `${content.trimEnd()}\n\n${trailer}\n`);
+	// Delegated to git rather than appending to the end of the file. Under `git commit -v`
+	// (and `commit.verbose=true`) git discards everything from the scissors line down, taking
+	// an appended trailer with it and silently producing an unsigned commit. Kept in step with
+	// packages/cli/src/commands/hook/sub-commands/scripts/commit-signoff.ts.
+	runCommandSync(
+		"git",
+		[
+			"interpret-trailers",
+			"--in-place",
+			"--if-exists",
+			"addIfDifferent",
+			"--trailer",
+			trailer,
+			msgFile,
+		],
+		{
+			error: { message: `Could not add the Signed-off-by trailer to "${msgFile}".` },
+		},
+	);
 	log.success("Trailer successfully added!");
 }
 
@@ -100,9 +109,10 @@ void yargs()
 		},
 	})
 	.strict()
-	.fail((msg) => {
+	// `msg` is null when an async handler rejects — the real error is in `err`.
+	.fail((msg, err) => {
 		const log = createLogger("yargs-fail");
-		log.error(msg);
+		log.error(msg ?? err);
 		process.exit(1);
 	})
 	.parse(hideBin(process.argv));

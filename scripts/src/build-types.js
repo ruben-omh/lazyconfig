@@ -3,25 +3,35 @@
 
 const yargs = require("yargs");
 const { hideBin } = require("yargs/helpers");
-const { copyFile, readFile } = require("node:fs/promises");
+const { copyFile } = require("node:fs/promises");
+const { resolve } = require("node:path");
 const createLogger = require("./utils/logger");
 const { runCommand } = require("./utils/run-command");
 
 /**
- * Reads an api-extractor config file and resolves the `dtsRollup.untrimmedFilePath`
- * value to an absolute-ish path by substituting the `<projectFolder>` token.
+ * Resolves the declaration rollup api-extractor just wrote for `configPath`.
+ *
+ * Delegates to api-extractor's own `ExtractorConfig` rather than parsing the JSON here,
+ * so `extends` chains, every `<token>`, and `projectFolder` resolve exactly as they did
+ * during the `api-extractor run` that produced the file.
+ *
+ * Kept in step with packages/cli/src/commands/compile/sub-commands/scripts/types.ts —
+ * this is the internal twin of the published `lazyconfig compile types` command.
  *
  * @param {string} configPath - Path to the `api-extractor.json` file.
- * @returns {Promise<string | undefined>} The resolved `.d.ts` output path, or
- *   `undefined` when `dtsRollup` is not configured in the file.
+ * @returns {string | undefined} The rollup path, or `undefined` when the config emits none.
  */
-async function resolveDtsRollupPath(configPath) {
-	const raw = await readFile(configPath, "utf-8");
-	const config = JSON.parse(raw);
-	const filePath = config.dtsRollup?.untrimmedFilePath;
-	if (!filePath) return undefined;
-	const projectFolder = config.projectFolder ?? ".";
-	return filePath.replace("<projectFolder>", projectFolder);
+function resolveDtsRollupPath(configPath) {
+	const { ExtractorConfig } = require("@microsoft/api-extractor");
+	const config = ExtractorConfig.loadFileAndPrepare(resolve(configPath));
+	if (!config.rollupEnabled) return undefined;
+	return (
+		config.untrimmedFilePath ||
+		config.publicTrimmedFilePath ||
+		config.betaTrimmedFilePath ||
+		config.alphaTrimmedFilePath ||
+		undefined
+	);
 }
 
 /** Strips any leading `.` or `.d.` from a user-provided extension token. */
@@ -104,8 +114,18 @@ async function buildTypes(opts = {}) {
 			});
 
 			if (normalizedExts.length === 0) return;
-			const dtsPath = await resolveDtsRollupPath(config);
-			if (!dtsPath) return;
+
+			const dtsPath = resolveDtsRollupPath(config);
+			if (!dtsPath) {
+				// Returning quietly would leave the dual-package "exports" map pointing at
+				// .d.mts/.d.cts files that were never written.
+				logger.error(
+					`--ext was requested but "${config}" produces no declaration rollup. ` +
+						"Enable dtsRollup and set untrimmedFilePath (or one of the trimmed variants).",
+				);
+				process.exit(1);
+			}
+
 			await Promise.all(normalizedExts.map((e) => copyDtsToExt(dtsPath, e, logger)));
 		}),
 	);
@@ -158,9 +178,10 @@ void yargs()
 		},
 	})
 	.strict()
-	.fail((msg) => {
+	// `msg` is null when an async handler rejects — the real error is in `err`.
+	.fail((msg, err) => {
 		const logger = createLogger("yargs-fail");
-		logger.error(msg);
+		logger.error(msg ?? err);
 		process.exit(1);
 	})
 	.parse(hideBin(process.argv));
