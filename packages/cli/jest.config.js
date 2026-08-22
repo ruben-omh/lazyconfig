@@ -14,6 +14,9 @@ const config = {
 			"src/cli.ts",
 			"src/commands/.+/command.ts",
 			"src/commands/.+/sub-commands/.+.command.ts",
+			// Type-only module. Anchored so it does not also match the compile script at
+			// src/commands/compile/sub-commands/scripts/types.ts, which does carry logic.
+			"src/types\\.ts$",
 		],
 	},
 };
