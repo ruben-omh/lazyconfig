@@ -60,7 +60,10 @@ export function defineConfig(options: DefineConfigOptions = {}): Config {
 			"src/**/*.[jt]s?(x)",
 			"!src/index.*",
 			"!src/**/index.*",
-			"!src/**/types.*",
+			// Ambient declarations only. A blanket "types.*" would also drop modules that
+			// merely happen to be named types.ts but carry real logic — exclude those per
+			// package via `coveragePathIgnorePatterns`.
+			"!src/**/*.d.ts",
 			"!src/**/__tests__/**",
 			"!src/**/?(*.)+(spec|test).[jt]s?(x)",
 			"!test/**/*",

@@ -76,7 +76,7 @@ describe("defineConfig", () => {
 				"src/**/*.[jt]s?(x)",
 				"!src/index.*",
 				"!src/**/index.*",
-				"!src/**/types.*",
+				"!src/**/*.d.ts",
 				"!src/**/__tests__/**",
 				"!src/**/?(*.)+(spec|test).[jt]s?(x)",
 				"!test/**/*",
