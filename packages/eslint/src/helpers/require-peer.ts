@@ -1,3 +1,13 @@
+// DUPLICATED, DELIBERATELY — the twin lives at packages/rollup/src/helpers/require-peer.ts.
+//
+// @lazyconfig/eslint and @lazyconfig/rollup publish independently, so sharing this would
+// mean either a third published package or a private devDependency inlined by both rollup
+// and api-extractor's `bundledPackages`. Neither is worth it for ~40 lines, and both would
+// add a runtime dependency to presets that are otherwise dependency-free.
+//
+// The public signatures differ on purpose (this one names a preset, the rollup one names a
+// plugin), but `isResolveFailureFor` is shared logic: change it here, change it there too.
+
 import { createRequire } from "node:module";
 
 // `NodeRequire` from the global @types/node namespace is deprecated; the

@@ -1,3 +1,14 @@
+// DUPLICATED, DELIBERATELY — the twin lives at packages/eslint/src/helpers/require-peer.ts.
+//
+// @lazyconfig/eslint and @lazyconfig/rollup publish independently, so sharing this would
+// mean either a third published package or a private devDependency inlined by both rollup
+// and api-extractor's `bundledPackages`. Neither is worth it for ~40 lines, and both would
+// add a runtime dependency to presets that are otherwise dependency-free.
+//
+// The public signatures differ on purpose (this one names a plugin, the eslint one names a
+// preset, and only the eslint copy needs `tryRequirePeer`), but `isResolveFailureFor` is
+// shared logic: change it here, change it there too.
+
 import { createRequire } from "node:module";
 
 // `NodeRequire` from the global @types/node namespace is deprecated; the
@@ -33,7 +44,7 @@ function isResolveFailureFor(error: unknown, specifier: string): boolean {
  * Detection and execution are split:
  *   1. `require.resolve(specifier)` decides whether the peer itself is
  *      installed. Only a `MODULE_NOT_FOUND` for the **requested** specifier
- *      (matched as a quoted token) is translated into the install hint.
+ *      is translated into the install hint.
  *   2. `require(specifier)` runs only after resolve succeeds, so any error
  *      thrown while evaluating the peer — including a transitive
  *      `MODULE_NOT_FOUND` whose name overlaps the requested specifier as a
