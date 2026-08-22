@@ -67,7 +67,7 @@ export function buildPlugins(options: PluginsOptions): Plugin[] {
 		plugins.push(jsonOptions(jsonConfig));
 	}
 
-	// 3. babel — transpile with Babel (pure annotations always included)
+	// 3. babel — transpile with Babel
 	if (babelConfig) {
 		plugins.push(babelOptions(babelConfig));
 	}

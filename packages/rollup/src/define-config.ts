@@ -80,10 +80,9 @@ function buildBundleConfigs(
 
 		if (!items) continue; // format: false
 		if (bundle.omitFormats?.includes(format)) continue; // excluded by bundle
+		if (!validateNameRequirement(format, bundle.name)) continue; // umd/iife without a name
 
 		for (const item of items) {
-			if (!validateNameRequirement(format, bundle.name)) continue;
-
 			const mergedPlugins = mergePlugins(sharedPlugins, item.plugins);
 			const mergedGlobals = mergeGlobals(sharedGlobals, item.globals);
 			const external = resolveExternal(sharedExternal, item.external, mergedGlobals);
@@ -106,12 +105,13 @@ function buildBundleConfigs(
  *
  * Returns an array of `RollupOptions` — one entry per active (bundle × format) pair.
  * Array format configs (e.g. `umd: [devItem, prodItem]`) produce multiple entries
- * for the same format; use the `ext` or `suffix` field on each item to prevent
+ * for the same format; use the `ext` field on each item to prevent
  * filename collisions.
  *
  * Shared options (`globals`, `plugins`, `external`) serve as a baseline for every
- * format output. Format-level overrides in {@link FormatOutputOptions} are merged
- * additively on top.
+ * format output. Format-level `globals` and `external` in {@link FormatOutputOptions}
+ * are merged additively on top; format-level `plugins` replace their shared
+ * counterpart per plugin instead of deep-merging.
  *
  * @example
  * ```ts

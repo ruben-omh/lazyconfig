@@ -43,12 +43,12 @@ export type SupportedFormat = Extract<
 /**
  * Per-format output overrides.
  *
- * Allows each format to define its own `suffix`, `globals`, plugin pipeline,
+ * Allows each format to define its own `ext`, `globals`, plugin pipeline,
  * and any additional Rollup `OutputOptions` not controlled at the bundle level.
  *
  * Options intentionally excluded from `output` because they are managed
  * at a higher level:
- * - `file`      — derived from {@link BundleOptions.file} + format identifier + `suffix` + extension
+ * - `file`      — derived from {@link BundleOptions.file} + format identifier + `ext`
  * - `format`    — inferred from the format key (`es`, `cjs`, etc.)
  * - `name`      — from {@link BundleOptions.name}
  * - `sourcemap` — from {@link BundleOptions.sourcemap}
@@ -85,7 +85,9 @@ export type FormatOutputOptions = {
 
 	/**
 	 * Plugin overrides for this specific format.
-	 * Merged on top of the shared {@link DefineConfigOptions.plugins}.
+	 * Each plugin set here replaces its shared {@link DefineConfigOptions.plugins}
+	 * counterpart outright — the two values are not deep-merged. Plugins left unset
+	 * fall through to the shared config, and `extra` arrays are concatenated.
 	 */
 	plugins?: PluginsOptions;
 
@@ -424,7 +426,8 @@ export interface DefineConfigOptions {
 	/**
 	 * Opt-in pre-configured plugins shared across all bundles and formats.
 	 * All plugins are **disabled by default**.
-	 * Format-level plugins in {@link FormatOutputOptions} are merged on top of these.
+	 * Format-level plugins in {@link FormatOutputOptions} override these per plugin —
+	 * a plugin set at the format level replaces the shared value rather than merging with it.
 	 *
 	 * @example
 	 * ```ts
