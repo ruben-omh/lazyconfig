@@ -42,6 +42,14 @@ describe("resolveOutputOptions", () => {
 			expect(result.file).toBe("dist/bundle.mjs");
 		});
 
+		it.each([["./"], [""], ["/"], ["   "]])(
+			"falls back to the current directory for outputDir %p",
+			(outputDir) => {
+				const result = resolveOutputOptions("es", item(), bundle({ outputDir }), undefined);
+				expect(result.file).toBe("./bundle.mjs");
+			},
+		);
+
 		it("appends format segment for umd", () => {
 			const result = resolveOutputOptions(
 				"umd",

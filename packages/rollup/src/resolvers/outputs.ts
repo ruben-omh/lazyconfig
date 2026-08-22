@@ -24,7 +24,9 @@ function getOutputFile(
 	outputDir: string,
 	ext?: string,
 ): string {
-	const dir = outputDir.trim().replaceAll(/^\.?\/+|\/+$/g, "");
+	// Falls back to "." when stripping consumes the whole value (e.g. "./", "/", "") —
+	// without it the result would start with "/" and point at the filesystem root.
+	const dir = outputDir.trim().replaceAll(/^\.?\/+|\/+$/g, "") || ".";
 	const resolvedExt = ext ?? DEFAULT_FORMAT_EXTENSION[format];
 	const base = format === "es" || format === "cjs" ? file : `${file}.${format}`;
 	return `${dir}/${base}.${resolvedExt}`;
