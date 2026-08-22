@@ -1,14 +1,10 @@
-import { readFileSync, writeFileSync } from "node:fs";
 import { commitSignoff } from "../../../../src/commands/hook/sub-commands/scripts/commit-signoff";
 import { createLogger } from "../../../../src/helpers/log";
 import { runCommandSync } from "../../../../src/helpers/run-command";
 
-jest.mock("node:fs");
 jest.mock("../../../../src/helpers/run-command");
 jest.mock("../../../../src/helpers/log");
 
-const mockedReadFileSync = jest.mocked(readFileSync);
-const mockedWriteFileSync = jest.mocked(writeFileSync);
 const mockedRunCommandSync = jest.mocked(runCommandSync);
 
 const MSG_FILE = "/repo/.git/COMMIT_EDITMSG";
@@ -24,6 +20,15 @@ const mockLog = {
 	error: jest.fn(),
 };
 
+// --- helpers ---
+
+/** The argv of the `git interpret-trailers` invocation, or undefined if it never ran. */
+function trailerCallArgs(): string[] | undefined {
+	return mockedRunCommandSync.mock.calls.find(([, args]) => args[0] === "interpret-trailers")?.[1];
+}
+
+// --- tests ---
+
 describe("commitSignoff", () => {
 	beforeEach(() => {
 		jest.mocked(createLogger).mockReturnValue(mockLog);
@@ -36,68 +41,62 @@ describe("commitSignoff", () => {
 	});
 
 	describe("trailer injection", () => {
-		it("appends a Signed-off-by trailer to the commit message", () => {
-			mockedReadFileSync.mockReturnValue("feat: add new feature\n");
+		it("adds the Signed-off-by trailer via git interpret-trailers", () => {
 			commitSignoff({ msgFile: MSG_FILE });
-			expect(mockedWriteFileSync).toHaveBeenCalledWith(
+			expect(trailerCallArgs()).toEqual([
+				"interpret-trailers",
+				"--in-place",
+				"--if-exists",
+				"addIfDifferent",
+				"--trailer",
+				TRAILER,
 				MSG_FILE,
-				`feat: add new feature\n\n${TRAILER}\n`,
-			);
+			]);
 		});
 
-		it("skips writing when the trailer is already present", () => {
-			mockedReadFileSync.mockReturnValue(`feat: add new feature\n\n${TRAILER}\n`);
+		// Regression guard: the previous implementation appended to the end of the file,
+		// which git discards under `git commit -v` (everything past the scissors line).
+		it("edits the message in place rather than appending to the file", () => {
 			commitSignoff({ msgFile: MSG_FILE });
-			expect(mockedWriteFileSync).not.toHaveBeenCalled();
+			expect(trailerCallArgs()).toContain("--in-place");
 		});
 
-		it("inserts a blank line between the message body and the trailer", () => {
-			mockedReadFileSync.mockReturnValue("feat: initial commit");
+		it("uses addIfDifferent so repeat runs do not duplicate the trailer", () => {
 			commitSignoff({ msgFile: MSG_FILE });
-			const written = mockedWriteFileSync.mock.calls[0]?.[1] as string;
-			expect(written).toContain("\n\nSigned-off-by:");
+			const args = trailerCallArgs();
+			expect(args?.[args.indexOf("--if-exists") + 1]).toBe("addIfDifferent");
 		});
 
-		it("trims trailing whitespace from the message before appending the trailer", () => {
-			mockedReadFileSync.mockReturnValue("feat: initial commit\n\n\n");
+		it("targets the resolved commit message file", () => {
 			commitSignoff({ msgFile: MSG_FILE });
-			const written = mockedWriteFileSync.mock.calls[0]?.[1] as string;
-			expect(written).toBe(`feat: initial commit\n\n${TRAILER}\n`);
+			expect(trailerCallArgs()?.at(-1)).toBe(MSG_FILE);
 		});
 
-		it("ends the written content with a newline", () => {
-			mockedReadFileSync.mockReturnValue("feat: initial commit");
+		it("surfaces a descriptive error when the trailer cannot be written", () => {
 			commitSignoff({ msgFile: MSG_FILE });
-			const written = mockedWriteFileSync.mock.calls[0]?.[1] as string;
-			expect(written).toMatch(/\n$/);
+			const opts = mockedRunCommandSync.mock.calls.find(
+				([, args]) => args[0] === "interpret-trailers",
+			)?.[2];
+			expect(opts?.error?.message).toContain(MSG_FILE);
 		});
 	});
 
 	describe("default commit message file path", () => {
 		it("uses GIT_DIR env var to resolve the commit message file", () => {
 			process.env.GIT_DIR = "/worktree/.git/worktrees/my-worktree";
-			mockedReadFileSync.mockReturnValue("feat: add feature\n");
 			commitSignoff();
-			expect(mockedReadFileSync).toHaveBeenCalledWith(
-				"/worktree/.git/worktrees/my-worktree/COMMIT_EDITMSG",
-				"utf-8",
-			);
+			expect(trailerCallArgs()?.at(-1)).toBe("/worktree/.git/worktrees/my-worktree/COMMIT_EDITMSG");
 		});
 
 		it("falls back to .git/COMMIT_EDITMSG when GIT_DIR is not set", () => {
 			delete process.env.GIT_DIR;
-			mockedReadFileSync.mockReturnValue("feat: add feature\n");
 			commitSignoff();
-			expect(mockedReadFileSync).toHaveBeenCalledWith(
-				expect.stringContaining("COMMIT_EDITMSG"),
-				"utf-8",
-			);
+			expect(trailerCallArgs()?.at(-1)).toContain("COMMIT_EDITMSG");
 		});
 	});
 
 	describe("git config", () => {
 		it("reads user.name from git config", () => {
-			mockedReadFileSync.mockReturnValue("feat: add feature\n");
 			commitSignoff({ msgFile: MSG_FILE });
 			expect(mockedRunCommandSync).toHaveBeenCalledWith(
 				"git",
@@ -107,7 +106,6 @@ describe("commitSignoff", () => {
 		});
 
 		it("reads user.email from git config", () => {
-			mockedReadFileSync.mockReturnValue("feat: add feature\n");
 			commitSignoff({ msgFile: MSG_FILE });
 			expect(mockedRunCommandSync).toHaveBeenCalledWith(
 				"git",
@@ -117,28 +115,32 @@ describe("commitSignoff", () => {
 		});
 
 		it("builds the trailer from user.name and user.email", () => {
-			mockedReadFileSync.mockReturnValue("feat: add feature\n");
 			commitSignoff({ msgFile: MSG_FILE });
-			const written = mockedWriteFileSync.mock.calls[0]?.[1] as string;
-			expect(written).toContain(`Signed-off-by: ${USER_NAME} <${USER_EMAIL}>`);
+			expect(trailerCallArgs()).toContain(`Signed-off-by: ${USER_NAME} <${USER_EMAIL}>`);
+		});
+
+		it("reads the git config before invoking interpret-trailers", () => {
+			commitSignoff({ msgFile: MSG_FILE });
+			const commands = mockedRunCommandSync.mock.calls.map(([, args]) => args[0]);
+			expect(commands.lastIndexOf("config")).toBeLessThan(commands.indexOf("interpret-trailers"));
 		});
 	});
 
 	describe("watch mode", () => {
 		it("logs success when the trailer is added", () => {
-			mockedReadFileSync.mockReturnValue("feat: add feature\n");
 			commitSignoff({ msgFile: MSG_FILE, watch: true });
 			expect(mockLog.success).toHaveBeenCalled();
 		});
 
-		it("logs when the trailer is already present", () => {
-			mockedReadFileSync.mockReturnValue(`feat: add feature\n\n${TRAILER}\n`);
+		it("forwards watch to the interpret-trailers invocation", () => {
 			commitSignoff({ msgFile: MSG_FILE, watch: true });
-			expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining("already present"));
+			const opts = mockedRunCommandSync.mock.calls.find(
+				([, args]) => args[0] === "interpret-trailers",
+			)?.[2];
+			expect(opts).toMatchObject({ watch: true });
 		});
 
 		it("creates the logger with watch: false when watch is not set", () => {
-			mockedReadFileSync.mockReturnValue("feat: add feature\n");
 			commitSignoff({ msgFile: MSG_FILE });
 			expect(jest.mocked(createLogger)).toHaveBeenCalledWith("commit-signoff", false);
 		});
