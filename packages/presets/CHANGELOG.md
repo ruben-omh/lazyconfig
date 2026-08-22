@@ -1,5 +1,14 @@
 # @lazyconfig/presets
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [[`a7ec1dc`](https://github.com/ruben-omh/lazyconfig/commit/a7ec1dcc479bff5bc5b528ee89fba25db589f39e), [`9ea8ce1`](https://github.com/ruben-omh/lazyconfig/commit/9ea8ce13089f4bb451a22dd4cc7125d87c6fa292), [`91fa1ef`](https://github.com/ruben-omh/lazyconfig/commit/91fa1efc1785d1aa7f6a8272fb593b3954044ee3), [`8aa77eb`](https://github.com/ruben-omh/lazyconfig/commit/8aa77eb1f25682f78816c3e678bfed2dba25da15), [`0c9b671`](https://github.com/ruben-omh/lazyconfig/commit/0c9b671890fb07b47f3bd106f72d31bd0cab14cf)]:
+  - @lazyconfig/eslint@0.1.1
+  - @lazyconfig/jest@0.2.0
+  - @lazyconfig/rollup@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

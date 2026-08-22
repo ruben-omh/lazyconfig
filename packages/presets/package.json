@@ -1,6 +1,6 @@
 {
 	"name": "@lazyconfig/presets",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Meta-package that bundles all lazyconfig presets for a single-install setup.",
 	"type": "module",
 	"files": [
