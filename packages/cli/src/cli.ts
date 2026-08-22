@@ -38,9 +38,12 @@ void yargs()
 	.command(compileCommand)
 	.demandCommand(1, 'No command specified. Run "lazyconfig --help" to see available commands.')
 	.strict()
-	.fail((msg) => {
+	// yargs passes (msg, err): validation failures arrive as `msg` with `err` null, while a
+	// rejected async command handler arrives as `msg === null` with the real error in `err`.
+	// Reading only `msg` turned every async failure into a bare "ERROR null".
+	.fail((msg, err) => {
 		const logger = createLogger("cli", false);
-		logger.error(msg);
+		logger.error(msg ?? err);
 		process.exit(1);
 	})
 	.parse(hideBin(process.argv));
