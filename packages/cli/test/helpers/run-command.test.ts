@@ -146,15 +146,18 @@ describe("runCommandSync", () => {
 			expect(mockLog.info).not.toHaveBeenCalled();
 		});
 
-		it("logs a manual-run hint when example is provided", () => {
+		// watch is left off deliberately — the hint must survive the default silent path,
+		// where every log method except error is a no-op.
+		it("logs the example on the error channel when provided", () => {
 			mockedExecFileSync.mockImplementation(() => {
 				throw err;
 			});
 			runCommandSync("git", ["config", "user.name"], {
-				watch: true,
 				error: { message: "user.name not set", example: 'git config user.name "Name"' },
 			});
-			expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining("git config user.name"));
+			expect(mockLog.error).toHaveBeenCalledWith("user.name not set");
+			expect(mockLog.error).toHaveBeenCalledWith('Run: git config user.name "Name"');
+			expect(mockLog.info).not.toHaveBeenCalled();
 		});
 	});
 
@@ -262,13 +265,16 @@ describe("runCommand", () => {
 			);
 		});
 
-		it("logs a manual-run hint when example is provided", async () => {
+		// watch is left off deliberately — the hint must survive the default silent path,
+		// where every log method except error is a no-op.
+		it("logs the example on the error channel when provided", async () => {
 			mockedSpawn.mockReturnValue(makeMockChild("", "cmd failed", 1));
 			await runCommand("git", ["config", "user.name"], {
-				watch: true,
 				error: { message: "user.name not set", example: 'git config user.name "Name"' },
 			});
-			expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining("git config user.name"));
+			expect(mockLog.error).toHaveBeenCalledWith("user.name not set");
+			expect(mockLog.error).toHaveBeenCalledWith('Run: git config user.name "Name"');
+			expect(mockLog.info).not.toHaveBeenCalled();
 		});
 	});
 

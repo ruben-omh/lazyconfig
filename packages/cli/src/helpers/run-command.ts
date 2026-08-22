@@ -85,8 +85,10 @@ export async function runCommand(
 		}
 
 		logger.error(message ?? (err as Error));
+		// Emitted on the error channel, not info — info is a no-op unless `watch` is on,
+		// and the remediation hint has to reach the user on the default (silent) path.
 		if (example) {
-			logger.info(`Run "${command} ${args.join(" ")}" manually to see the full error.`);
+			logger.error(`Run: ${example}`);
 		}
 		process.exit(1);
 	}
@@ -130,8 +132,10 @@ export function runCommandSync(command: string, args: string[], opts: CommandOpt
 		}
 
 		logger.error(message ?? (err as Error));
+		// Emitted on the error channel, not info — info is a no-op unless `watch` is on,
+		// and the remediation hint has to reach the user on the default (silent) path.
 		if (example) {
-			logger.info(`Run "${command} ${args.join(" ")}" manually to see the full error.`);
+			logger.error(`Run: ${example}`);
 		}
 		process.exit(1);
 	}
