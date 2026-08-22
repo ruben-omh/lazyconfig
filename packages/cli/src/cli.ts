@@ -10,7 +10,7 @@
  * lazyconfig --help
  * lazyconfig --version
  * lazyconfig hook --help
- * lazyconfig hook commit-signoff "$1"
+ * lazyconfig hook commit-signoff -f "$1"
  * ```
  */
 

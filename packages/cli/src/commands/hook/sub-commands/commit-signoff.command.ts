@@ -5,7 +5,10 @@ import type { CommitSignoffOptions, YargsCommandModule } from "../../../types";
  * The script is lazy-loaded on invocation to keep startup time low.
  */
 const command: YargsCommandModule<object, CommitSignoffOptions> = {
-	command: "commit-signoff [options]",
+	// No "[options]" placeholder — yargs would read that as a real optional positional named
+	// `options`, silently accepting (and discarding) `commit-signoff "$1"` instead of letting
+	// .strict() reject it. Flags are documented by the builder below.
+	command: "commit-signoff",
 	describe: "Append a Signed-off-by trailer to the commit message",
 
 	builder: (yargs) =>

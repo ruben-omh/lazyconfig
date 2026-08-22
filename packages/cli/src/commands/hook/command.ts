@@ -11,7 +11,7 @@ import { commitSignoffCommand } from "./sub-commands/index";
  * @example
  * ```sh
  * # .husky/prepare-commit-msg
- * lazyconfig hook commit-signoff "$1"
+ * lazyconfig hook commit-signoff -f "$1"
  * ```
  */
 const command: YargsCommandModule = {
