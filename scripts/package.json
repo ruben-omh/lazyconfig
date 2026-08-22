@@ -12,6 +12,7 @@
 		"commit-signoff": "node ./src/commit-signoff.js --mock"
 	},
 	"dependencies": {
+		"@microsoft/api-extractor": "catalog:",
 		"consola": "catalog:",
 		"yargs": "catalog:"
 	},

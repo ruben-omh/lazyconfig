@@ -23,6 +23,14 @@
 		"consola": "catalog:",
 		"yargs": "catalog:"
 	},
+	"peerDependencies": {
+		"@microsoft/api-extractor": "^7"
+	},
+	"peerDependenciesMeta": {
+		"@microsoft/api-extractor": {
+			"optional": true
+		}
+	},
 	"devDependencies": {
 		"@babel/core": "catalog:",
 		"@babel/preset-env": "catalog:",
