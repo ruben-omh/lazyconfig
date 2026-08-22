@@ -1,24 +1,61 @@
-import { copyFile, readFile } from "node:fs/promises";
+import { copyFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { resolve } from "node:path";
 import { runCommand } from "../../../../helpers/run-command";
 import type { TypesOptions } from "../../../../types";
 import { createLogger } from "../../../../helpers/log";
 
-/**
- * Reads the api-extractor config file and returns the resolved path to the
- * `dtsRollup.untrimmedFilePath` output file, or `undefined` if not configured.
- */
-interface ApiExtractorConfig {
-	projectFolder?: string;
-	dtsRollup?: { untrimmedFilePath?: string };
+/** The subset of api-extractor's prepared `ExtractorConfig` this script reads. */
+interface PreparedExtractorConfig {
+	rollupEnabled: boolean;
+	untrimmedFilePath: string;
+	publicTrimmedFilePath: string;
+	betaTrimmedFilePath: string;
+	alphaTrimmedFilePath: string;
 }
 
-async function resolveDtsRollupPath(configPath: string): Promise<string | undefined> {
-	const raw = await readFile(configPath, "utf-8");
-	const config = JSON.parse(raw) as ApiExtractorConfig;
-	const filePath = config.dtsRollup?.untrimmedFilePath;
-	if (!filePath) return undefined;
-	const projectFolder = config.projectFolder ?? ".";
-	return filePath.replace("<projectFolder>", projectFolder);
+interface ApiExtractorNamespace {
+	ExtractorConfig: { loadFileAndPrepare: (configPath: string) => PreparedExtractorConfig };
+}
+
+/**
+ * Resolves the declaration rollup that api-extractor just wrote for `configPath`,
+ * or `undefined` when the config emits no rollup at all.
+ *
+ * Delegates to api-extractor's own `ExtractorConfig` rather than parsing the JSON here,
+ * so `extends` chains, every `<token>`, and `projectFolder` resolve exactly as they did
+ * during the `api-extractor run` that produced the file. The library is loaded from the
+ * consumer's project — `compile types` already shells out to its binary, so it is
+ * necessarily installed there.
+ */
+function resolveDtsRollupPath(
+	configPath: string,
+	logger: ReturnType<typeof createLogger>,
+): string | undefined {
+	const requireFromProject = createRequire(resolve(process.cwd(), "noop.js"));
+
+	let apiExtractor: ApiExtractorNamespace;
+	try {
+		apiExtractor = requireFromProject("@microsoft/api-extractor") as ApiExtractorNamespace;
+	} catch {
+		logger.error(
+			'"@microsoft/api-extractor" could not be resolved from this project, so --ext cannot ' +
+				"determine where the declaration rollup was written.\n" +
+				"Run: pnpm add -D @microsoft/api-extractor",
+		);
+		process.exit(1);
+	}
+
+	const config = apiExtractor.ExtractorConfig.loadFileAndPrepare(resolve(configPath));
+	if (!config.rollupEnabled) return undefined;
+
+	return (
+		config.untrimmedFilePath ||
+		config.publicTrimmedFilePath ||
+		config.betaTrimmedFilePath ||
+		config.alphaTrimmedFilePath ||
+		undefined
+	);
 }
 
 /**
@@ -73,18 +110,6 @@ async function copyDtsToExt(
  * lazyconfig compile types -a api-extractor.json -a api-extractor.node.json
  * lazyconfig compile types -e mts -e cts
  * ```
- *
- * @example
- * ```ts
- * import { types } from "@lazyconfig/cli";
- *
- * await types();
- * await types({
- *   tsc: ["tsconfig.json", "tsconfig.node.json"],
- *   aec: ["api-extractor.json", "api-extractor.node.json"],
- *   ext: ["mts", "cts"],
- * });
- * ```
  */
 export async function types(opts: TypesOptions = {}): Promise<void> {
 	const { tsc = ["tsconfig.json"], aec = ["api-extractor.json"], ext = [], watch = false } = opts;
@@ -118,8 +143,19 @@ export async function types(opts: TypesOptions = {}): Promise<void> {
 			});
 
 			if (normalizedExts.length === 0) return;
-			const dtsPath = await resolveDtsRollupPath(config);
-			if (!dtsPath) return;
+
+			const dtsPath = resolveDtsRollupPath(config, logger);
+			if (!dtsPath) {
+				// Returning quietly would leave the dual-package "exports" map pointing at
+				// .d.mts/.d.cts files that were never written — a break that only surfaces
+				// downstream, after publish.
+				logger.error(
+					`--ext was requested but "${config}" produces no declaration rollup. ` +
+						"Enable dtsRollup and set untrimmedFilePath (or one of the trimmed variants).",
+				);
+				process.exit(1);
+			}
+
 			await Promise.all(normalizedExts.map((e) => copyDtsToExt(dtsPath, e, logger)));
 		}),
 	);

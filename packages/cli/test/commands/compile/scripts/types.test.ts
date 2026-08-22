@@ -1,19 +1,31 @@
 jest.mock("node:fs/promises", () => ({
-	readFile: jest.fn(),
 	copyFile: jest.fn(),
+}));
+
+// types.ts loads @microsoft/api-extractor through createRequire so the consumer's own
+// install is used at runtime. Mocking node:module is what lets the test intercept that —
+// a plain jest.mock of the package would not, since createRequire bypasses the registry.
+// Deliberately a plain function, not a jest.fn — the suite-wide jest.resetAllMocks()
+// would otherwise clear its implementation and make createRequire() return undefined.
+jest.mock("node:module", () => ({
+	createRequire: () => mockRequire,
 }));
 
 jest.mock("../../../../src/helpers/run-command");
 jest.mock("../../../../src/helpers/log");
 
-import { readFile, copyFile } from "node:fs/promises";
+import { copyFile } from "node:fs/promises";
 import { types } from "../../../../src/commands/compile/sub-commands/scripts/types";
 import { runCommand } from "../../../../src/helpers/run-command";
 import { createLogger } from "../../../../src/helpers/log";
 
-const mockedReadFile = jest.mocked(readFile);
 const mockedCopyFile = jest.mocked(copyFile);
 const mockedRunCommand = jest.mocked(runCommand);
+
+const mockLoadFileAndPrepare = jest.fn();
+const mockRequire = jest.fn(() => ({
+	ExtractorConfig: { loadFileAndPrepare: mockLoadFileAndPrepare },
+}));
 
 const mockLog = {
 	start: jest.fn(),
@@ -23,19 +35,30 @@ const mockLog = {
 	error: jest.fn(),
 };
 
-/** Returns a minimal api-extractor config JSON string with a dtsRollup path. */
-function aecConfig(untrimmedFilePath?: string, projectFolder?: string): string {
-	return JSON.stringify({
-		projectFolder: projectFolder ?? ".",
-		dtsRollup: untrimmedFilePath ? { untrimmedFilePath } : undefined,
-	});
+/**
+ * Returns a prepared ExtractorConfig stub. api-extractor resolves every path to an
+ * absolute location and reports unset rollup targets as empty strings, so the stub
+ * mirrors both.
+ */
+function prepared(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+	return {
+		rollupEnabled: true,
+		untrimmedFilePath: "/project/dist/index.d.ts",
+		publicTrimmedFilePath: "",
+		betaTrimmedFilePath: "",
+		alphaTrimmedFilePath: "",
+		...overrides,
+	};
 }
 
 beforeEach(() => {
 	jest.mocked(createLogger).mockReturnValue(mockLog);
 	mockedRunCommand.mockResolvedValue("");
 	mockedCopyFile.mockResolvedValue(undefined);
-	mockedReadFile.mockResolvedValue(aecConfig("<projectFolder>/dist/index.d.ts"));
+	mockRequire.mockReturnValue({
+		ExtractorConfig: { loadFileAndPrepare: mockLoadFileAndPrepare },
+	});
+	mockLoadFileAndPrepare.mockReturnValue(prepared());
 });
 
 afterEach(() => {
@@ -106,7 +129,6 @@ describe("types", () => {
 		});
 
 		it("runs api-extractor for each aec config provided", async () => {
-			mockedReadFile.mockResolvedValue(aecConfig());
 			await types({ aec: ["api-extractor.json", "api-extractor.node.json"] });
 			expect(mockedRunCommand).toHaveBeenCalledWith(
 				"api-extractor",
@@ -138,102 +160,151 @@ describe("types", () => {
 
 	describe("ext copies (.d.ts → .d.<ext>)", () => {
 		it("does not copy when ext is omitted (opt-in)", async () => {
-			mockedReadFile.mockResolvedValue(aecConfig("<projectFolder>/dist/index.d.ts"));
 			await types({ aec: ["api-extractor.json"] });
 			expect(mockedCopyFile).not.toHaveBeenCalled();
 		});
 
 		it("does not copy when ext is an empty array", async () => {
-			mockedReadFile.mockResolvedValue(aecConfig("<projectFolder>/dist/index.d.ts"));
 			await types({ aec: ["api-extractor.json"], ext: [] });
 			expect(mockedCopyFile).not.toHaveBeenCalled();
 		});
 
 		it("copies the .d.ts rollup to a .d.mts file when ext includes 'mts'", async () => {
-			mockedReadFile.mockResolvedValue(aecConfig("<projectFolder>/dist/index.d.ts"));
 			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
-			expect(mockedCopyFile).toHaveBeenCalledWith("./dist/index.d.ts", "./dist/index.d.mts");
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/index.d.ts",
+				"/project/dist/index.d.mts",
+			);
 		});
 
 		it("emits one copy per ext entry", async () => {
-			mockedReadFile.mockResolvedValue(aecConfig("<projectFolder>/dist/index.d.ts"));
 			await types({ aec: ["api-extractor.json"], ext: ["mts", "cts"] });
 			expect(mockedCopyFile).toHaveBeenCalledTimes(2);
-			expect(mockedCopyFile).toHaveBeenCalledWith("./dist/index.d.ts", "./dist/index.d.mts");
-			expect(mockedCopyFile).toHaveBeenCalledWith("./dist/index.d.ts", "./dist/index.d.cts");
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/index.d.ts",
+				"/project/dist/index.d.mts",
+			);
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/index.d.ts",
+				"/project/dist/index.d.cts",
+			);
 		});
 
 		it("normalizes ext tokens (strips leading '.' and 'd.')", async () => {
-			mockedReadFile.mockResolvedValue(aecConfig("<projectFolder>/dist/index.d.ts"));
 			await types({ aec: ["api-extractor.json"], ext: [".mts", ".d.cts"] });
-			expect(mockedCopyFile).toHaveBeenCalledWith("./dist/index.d.ts", "./dist/index.d.mts");
-			expect(mockedCopyFile).toHaveBeenCalledWith("./dist/index.d.ts", "./dist/index.d.cts");
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/index.d.ts",
+				"/project/dist/index.d.mts",
+			);
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/index.d.ts",
+				"/project/dist/index.d.cts",
+			);
 		});
 
 		it("skips copies when target equals source (ext === 'ts')", async () => {
-			mockedReadFile.mockResolvedValue(aecConfig("<projectFolder>/dist/index.d.ts"));
 			await types({ aec: ["api-extractor.json"], ext: ["ts"] });
 			expect(mockedCopyFile).not.toHaveBeenCalled();
 		});
 
-		it("resolves the <projectFolder> token using the config's projectFolder field", async () => {
-			mockedReadFile.mockResolvedValue(
-				aecConfig("<projectFolder>/dist/my-lib.d.ts", "./packages/lib"),
+		it("falls back to publicTrimmedFilePath when no untrimmed rollup is configured", async () => {
+			mockLoadFileAndPrepare.mockReturnValue(
+				prepared({
+					untrimmedFilePath: "",
+					publicTrimmedFilePath: "/project/dist/public.d.ts",
+				}),
 			);
 			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
 			expect(mockedCopyFile).toHaveBeenCalledWith(
-				"./packages/lib/dist/my-lib.d.ts",
-				"./packages/lib/dist/my-lib.d.mts",
+				"/project/dist/public.d.ts",
+				"/project/dist/public.d.mts",
 			);
 		});
 
-		it("defaults projectFolder to '.' when not set in the config", async () => {
-			mockedReadFile.mockResolvedValue(
-				JSON.stringify({ dtsRollup: { untrimmedFilePath: "<projectFolder>/dist/index.d.ts" } }),
-			);
-			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
-			expect(mockedCopyFile).toHaveBeenCalledWith("./dist/index.d.ts", "./dist/index.d.mts");
-		});
-
-		it("skips the copy when dtsRollup is not configured", async () => {
-			mockedReadFile.mockResolvedValue(JSON.stringify({}));
-			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
-			expect(mockedCopyFile).not.toHaveBeenCalled();
-		});
-
-		it("skips the copy when untrimmedFilePath is not set", async () => {
-			mockedReadFile.mockResolvedValue(aecConfig());
-			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
-			expect(mockedCopyFile).not.toHaveBeenCalled();
-		});
-
-		it("reads the aec config file after api-extractor runs", async () => {
+		it("prepares the aec config through api-extractor after it runs", async () => {
 			const callOrder: string[] = [];
 			mockedRunCommand.mockImplementation((cmd) => {
 				callOrder.push(cmd);
 				return Promise.resolve("");
 			});
-			mockedReadFile.mockImplementation(() => {
-				callOrder.push("readFile");
-				return Promise.resolve(aecConfig("<projectFolder>/dist/index.d.ts"));
+			mockLoadFileAndPrepare.mockImplementation(() => {
+				callOrder.push("loadFileAndPrepare");
+				return prepared();
 			});
 			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
-			expect(callOrder.indexOf("readFile")).toBeGreaterThan(callOrder.indexOf("api-extractor"));
+			expect(callOrder.indexOf("loadFileAndPrepare")).toBeGreaterThan(
+				callOrder.indexOf("api-extractor"),
+			);
 		});
 
-		it("does not read the aec config when ext is empty", async () => {
+		it("does not load the aec config when ext is empty", async () => {
 			await types({ aec: ["api-extractor.json"] });
-			expect(mockedReadFile).not.toHaveBeenCalled();
+			expect(mockLoadFileAndPrepare).not.toHaveBeenCalled();
 		});
 
-		it("produces a .d.mts for each aec config that has a dtsRollup path", async () => {
-			mockedReadFile
-				.mockResolvedValueOnce(aecConfig("<projectFolder>/dist/index.d.ts"))
-				.mockResolvedValueOnce(aecConfig("<projectFolder>/dist/node.d.ts"));
+		it("produces a .d.mts for each aec config", async () => {
+			mockLoadFileAndPrepare
+				.mockReturnValueOnce(prepared())
+				.mockReturnValueOnce(prepared({ untrimmedFilePath: "/project/dist/node.d.ts" }));
 			await types({ aec: ["api-extractor.json", "api-extractor.node.json"], ext: ["mts"] });
 			expect(mockedCopyFile).toHaveBeenCalledTimes(2);
-			expect(mockedCopyFile).toHaveBeenCalledWith("./dist/index.d.ts", "./dist/index.d.mts");
-			expect(mockedCopyFile).toHaveBeenCalledWith("./dist/node.d.ts", "./dist/node.d.mts");
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/index.d.ts",
+				"/project/dist/index.d.mts",
+			);
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/node.d.ts",
+				"/project/dist/node.d.mts",
+			);
+		});
+	});
+
+	// Previously these two paths returned silently, leaving the dual-package "exports"
+	// map pointing at .d.mts/.d.cts files that were never written.
+	describe("ext copies — unresolvable rollup", () => {
+		let exitSpy: jest.SpiedFunction<typeof process.exit>;
+
+		beforeEach(() => {
+			exitSpy = jest.spyOn(process, "exit").mockImplementation(() => {
+				throw new Error("process.exit");
+			});
+		});
+
+		afterEach(() => {
+			exitSpy.mockRestore();
+		});
+
+		it("fails loudly when the config emits no rollup", async () => {
+			mockLoadFileAndPrepare.mockReturnValue(prepared({ rollupEnabled: false }));
+			await expect(types({ aec: ["api-extractor.json"], ext: ["mts"] })).rejects.toThrow(
+				"process.exit",
+			);
+			expect(mockLog.error).toHaveBeenCalledWith(
+				expect.stringContaining("produces no declaration rollup"),
+			);
+			expect(mockedCopyFile).not.toHaveBeenCalled();
+		});
+
+		it("fails loudly when every rollup path is unset", async () => {
+			mockLoadFileAndPrepare.mockReturnValue(prepared({ untrimmedFilePath: "" }));
+			await expect(types({ aec: ["api-extractor.json"], ext: ["mts"] })).rejects.toThrow(
+				"process.exit",
+			);
+			expect(mockLog.error).toHaveBeenCalledWith(
+				expect.stringContaining("produces no declaration rollup"),
+			);
+		});
+
+		it("fails loudly when @microsoft/api-extractor cannot be resolved", async () => {
+			mockRequire.mockImplementation(() => {
+				throw new Error("Cannot find module '@microsoft/api-extractor'");
+			});
+			await expect(types({ aec: ["api-extractor.json"], ext: ["mts"] })).rejects.toThrow(
+				"process.exit",
+			);
+			expect(mockLog.error).toHaveBeenCalledWith(
+				expect.stringContaining("could not be resolved from this project"),
+			);
 		});
 	});
 
