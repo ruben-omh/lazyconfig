@@ -4,6 +4,9 @@ import { requirePeer, tryRequirePeer } from "../helpers/require-peer";
 interface ReactPlugin {
 	configs: { recommended: { rules: Linter.RulesRecord } };
 }
+// v6 is deliberately outside this preset's peer range: it ships `configs.recommended` as a
+// flat-config array rather than an object, so `.rules` is undefined there and spreading it
+// would silently apply no react-hooks rules at all. v5 and v7 both expose the object form.
 interface ReactHooksPlugin {
 	configs: { recommended: { rules: Linter.RulesRecord } };
 }
