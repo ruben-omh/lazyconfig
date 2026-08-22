@@ -31,7 +31,7 @@ export const DEFAULT_IGNORE_PATTERNS: string[] = [
  * export default [...ignores, ...base, ...typescript];
  * ```
  */
-export const ignores: Linter.Config[] = [
+export const ignores: (Linter.Config & { ignores: string[] })[] = [
 	{
 		ignores: DEFAULT_IGNORE_PATTERNS,
 	},

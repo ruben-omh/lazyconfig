@@ -5,7 +5,7 @@ import { react } from "./configs/react";
 import { a11y } from "./configs/a11y";
 import { node } from "./configs/node";
 import { prettier } from "./configs/prettier";
-import { DEFAULT_IGNORE_PATTERNS, ignores as ignoresPreset } from "./configs/ignores";
+import { ignores as ignoresPreset } from "./configs/ignores";
 
 /**
  * Options for {@link defineConfig}.
@@ -119,11 +119,12 @@ export function defineConfig(options?: DefineConfigOptions): Linter.Config[] {
 	// ignores must come first in flat config
 	if (options?.ignores) {
 		const extra = Array.isArray(options.ignores) ? options.ignores : [];
-		if (extra.length > 0) {
-			config.push({ ignores: [...DEFAULT_IGNORE_PATTERNS, ...extra] });
-		} else {
-			config.push(...ignoresPreset);
-		}
+		config.push(
+			...ignoresPreset.map((entry) => ({
+				...entry,
+				ignores: [...entry.ignores, ...extra],
+			})),
+		);
 	}
 
 	config.push(...base);
