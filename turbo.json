@@ -1,5 +1,6 @@
 {
 	"$schema": "https://turborepo.dev/schema.json",
+	"agentGuidance": false,
 	"tasks": {
 		"build": {
 			"description": "Compiles TypeScript source to dist/. Workspace dependency builds run first (^build).",
@@ -32,6 +33,10 @@
 		},
 		"clean": {
 			"description": "Removes build artifacts, coverage, and reports. Never cached.",
+			"cache": false
+		},
+		"clean:reset": {
+			"description": "Removes node_modules folder plus build artifacts, coverage and reports. Never cached.",
 			"cache": false
 		}
 	}
