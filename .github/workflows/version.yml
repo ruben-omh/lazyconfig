@@ -163,22 +163,13 @@ jobs:
       - name: Create Version PR
         uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
-          version: pnpm changeset version
-          # commitMode: github-api routes commits through the GitHub REST API
-          # instead of `git commit` on the runner. Commits made via the API
-          # using an App-installation token are signed with GitHub's internal
-          # GPG key and show as Verified — which is required by the branch
-          # protection rule "Require signed commits" on main.
-          # Author/committer attribution follows the token owner, so commits
-          # show up as lazyconfig-app[bot], not github-actions[bot].
-          commitMode: github-api
+          github-token: ${{ steps.app-token.outputs.token }}
+          version-script: pnpm changeset version
           # format.signOff handles the trailer on commits made via `git commit`
           # internally by the action. The explicit Signed-off-by below is a
           # belt-and-braces in case the action's internal commit path skips it.
-          commit: |
+          commit-message: |
             chore(release): version packages
 
             Signed-off-by: ${{ steps.bot.outputs.bot-name }} <${{ steps.bot.outputs.bot-email }}>
-          title: "chore(release): version packages"
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          pr-title: "chore(release): version packages"
