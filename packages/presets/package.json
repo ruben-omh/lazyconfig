@@ -34,7 +34,9 @@
 	},
 	"scripts": {
 		"build": "node scripts/copy-configs.mjs",
-		"test": "node --test --test-reporter=spec \"test/**/*.test.mjs\""
+		"test": "node --test --test-reporter=spec \"test/**/*.test.mjs\"",
+		"clean": "rimraf .turbo",
+		"clean:reset": "pnpm clean && rimraf node_modules"
 	},
 	"dependencies": {
 		"@lazyconfig/api-extractor": "workspace:*",
@@ -44,6 +46,9 @@
 		"@lazyconfig/prettier": "workspace:*",
 		"@lazyconfig/rollup": "workspace:*",
 		"@lazyconfig/tsconfig": "workspace:*"
+	},
+	"devDependencies": {
+		"rimraf": "catalog:"
 	},
 	"keywords": [
 		"lazyconfig",
@@ -64,7 +69,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/ruben-omh/lazyconfig",
+		"url": "git+https://github.com/ruben-omh/lazyconfig.git",
 		"directory": "packages/presets"
 	},
 	"author": "ruben-omh",

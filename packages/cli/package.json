@@ -10,13 +10,14 @@
 		"LICENSE"
 	],
 	"bin": {
-		"lazyconfig": "./dist/lazyconfig.cli.cjs"
+		"lazyconfig": "dist/lazyconfig.cli.cjs"
 	},
 	"scripts": {
 		"typecheck": "tsc -b --noEmit",
 		"build": "rollup --config",
 		"dev": "tsc -p tsconfig.lib.json --watch",
-		"clean": "rimraf out-tsc dist coverage reports .turbo",
+		"clean": "rimraf out-tsc dist coverage reports .turbo tsconfig.*.tsbuildinfo",
+		"clean:reset": "pnpm clean && rimraf node_modules",
 		"test": "jest"
 	},
 	"dependencies": {
@@ -76,7 +77,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/ruben-omh/lazyconfig",
+		"url": "git+https://github.com/ruben-omh/lazyconfig.git",
 		"directory": "packages/cli"
 	},
 	"author": "ruben-omh",

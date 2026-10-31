@@ -186,7 +186,11 @@ importers:
         specifier: 'catalog:'
         version: 8.62.1(eslint@10.13.0(jiti@2.6.1))(typescript@6.0.3)
 
-  packages/api-extractor: {}
+  packages/api-extractor:
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
 
   packages/cli:
     dependencies:
@@ -258,7 +262,11 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  packages/commitlint: {}
+  packages/commitlint:
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
 
   packages/eslint:
     dependencies:
@@ -429,8 +437,16 @@ importers:
       '@lazyconfig/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
 
-  packages/prettier: {}
+  packages/prettier:
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
 
   packages/rollup:
     dependencies:
@@ -499,7 +515,11 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  packages/tsconfig: {}
+  packages/tsconfig:
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
 
   scripts:
     dependencies:
@@ -512,6 +532,10 @@ importers:
       yargs:
         specifier: 'catalog:'
         version: 18.2.0
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
 
 packages:
 

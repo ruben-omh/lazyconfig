@@ -4,17 +4,21 @@
 	"version": "1.0.0",
 	"description": "Internal monorepo scripts for building and maintaining lazyconfig packages.",
 	"bin": {
-		"build-types": "./src/build-types.js",
-		"commit-signoff": "./src/commit-signoff.js"
+		"build-types": "src/build-types.js",
+		"commit-signoff": "src/commit-signoff.js"
 	},
 	"scripts": {
 		"build-types": "node ./src/build-types.js --mock",
-		"commit-signoff": "node ./src/commit-signoff.js --mock"
+		"commit-signoff": "node ./src/commit-signoff.js --mock",
+		"clean:reset": "rimraf node_modules"
 	},
 	"dependencies": {
 		"@microsoft/api-extractor": "catalog:",
 		"consola": "catalog:",
 		"yargs": "catalog:"
+	},
+	"devDependencies": {
+		"rimraf": "catalog:"
 	},
 	"sideEffects": false,
 	"packageManager": "pnpm@11.5.2",

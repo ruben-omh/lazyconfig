@@ -31,7 +31,8 @@
 		"dts": "build-types --tsc tsconfig.lib.json --aec api-extractor.json --ext mts cts",
 		"build": "pnpm dts && rollup --config",
 		"dev": "tsc -p tsconfig.lib.json --watch",
-		"clean": "rimraf out-tsc dist coverage reports .turbo",
+		"clean": "rimraf out-tsc dist coverage reports .turbo tsconfig.*.tsbuildinfo",
+		"clean:reset": "pnpm clean && rimraf node_modules",
 		"test": "jest"
 	},
 	"devDependencies": {
@@ -117,7 +118,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/ruben-omh/lazyconfig",
+		"url": "git+https://github.com/ruben-omh/lazyconfig.git",
 		"directory": "packages/eslint"
 	},
 	"author": "ruben-omh",
