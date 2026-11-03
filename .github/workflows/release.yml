@@ -123,13 +123,8 @@ jobs:
       - name: Publish packages and create GitHub Releases
         uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
-          publish: pnpm changeset publish
-          # Routes the per-package tags through the GitHub API so they're signed
-          # (required by "Require signed commits" on main).
-          commitMode: github-api
-        env:
-          # No NODE_AUTH_TOKEN — OIDC handles npm auth via id-token: write.
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          github-token: ${{ steps.app-token.outputs.token }}
+          publish-script: pnpm changeset publish
 
       # Pair with release-reminder.yml: closes any open "Release pending" issue
       # so the next reminder cycle starts clean. Never fails the workflow — a
