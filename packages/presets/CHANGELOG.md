@@ -1,5 +1,12 @@
 # @lazyconfig/presets
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [[`63072b3`](https://github.com/ruben-omh/lazyconfig/commit/63072b307e9205fb8823feab7af67f3e5dec2c64)]:
+  - @lazyconfig/commitlint@0.1.1
+
 ## 0.1.1
 
 ### Patch Changes
