@@ -26,6 +26,9 @@
 		"clean": "rimraf .turbo",
 		"clean:reset": "pnpm clean && rimraf node_modules"
 	},
+	"dependencies": {
+		"@commitlint/config-conventional": "catalog:"
+	},
 	"devDependencies": {
 		"rimraf": "catalog:"
 	},

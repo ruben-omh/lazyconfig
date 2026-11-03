@@ -26,17 +26,19 @@ Extends `@commitlint/config-conventional` with an opinionated set of rules to ke
 
 ```bash
 # pnpm
-pnpm add -D @lazyconfig/commitlint @commitlint/cli @commitlint/config-conventional
+pnpm add -D @lazyconfig/commitlint @commitlint/cli
 
 # npm
-npm install --save-dev @lazyconfig/commitlint @commitlint/cli @commitlint/config-conventional
+npm install --save-dev @lazyconfig/commitlint @commitlint/cli
 
 # yarn
-yarn add --dev @lazyconfig/commitlint @commitlint/cli @commitlint/config-conventional
+yarn add --dev @lazyconfig/commitlint @commitlint/cli
 
 # bun
-bun add --dev @lazyconfig/commitlint @commitlint/cli @commitlint/config-conventional
+bun add --dev @lazyconfig/commitlint @commitlint/cli
 ```
+
+> `@commitlint/config-conventional` ships as a dependency of this package, so you do not install it yourself. You only add this preset and the `@commitlint/cli` runner.
 
 ---
 
