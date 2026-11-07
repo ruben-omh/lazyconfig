@@ -37,7 +37,7 @@ updateNotifier: false
 minimumReleaseAgeStrict: true
 
 catalog:
-  "@babel/core": "8.0.7"
+  "@babel/core": "8.1.0"
   "@babel/preset-env": "8.0.7"
   "@babel/preset-typescript": "8.0.7"
   "@changesets/changelog-github": "1.0.1"
