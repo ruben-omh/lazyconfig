@@ -14,7 +14,6 @@
 	"types": "./dist/lazyconfig.eslint.index.d.ts",
 	"exports": {
 		".": {
-			"types": "./dist/lazyconfig.eslint.index.d.ts",
 			"import": {
 				"types": "./dist/lazyconfig.eslint.index.d.mts",
 				"default": "./dist/lazyconfig.eslint.index.mjs"
