@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -11,23 +12,24 @@ const pkg = JSON.parse(await readFile(resolve(pkgRoot, "package.json"), "utf8"))
 // --- helpers ---
 
 // Flatten the `exports` map to a list of { subpath, condition, file } rows so
-// each leaf file is asserted individually. Conditional entries (types/default)
-// become one row per condition; string entries become a single row.
+// each leaf file is asserted individually. Condition objects may nest
+// arbitrarily (e.g. `import` -> `{ types, default }`); each string leaf becomes
+// one row, with `condition` tracking the dotted path of conditions traversed
+// to reach it (e.g. "import.types"). String entries become a single row.
+const flattenConditions = (subpath, value, path, rows) => {
+	if (typeof value === "string") {
+		rows.push({ subpath, condition: path.join(".") || null, file: value });
+		return;
+	}
+	for (const [condition, nested] of Object.entries(value)) {
+		flattenConditions(subpath, nested, [...path, condition], rows);
+	}
+};
+
 const flattenExports = (exportsMap) => {
 	const rows = [];
 	for (const [subpath, value] of Object.entries(exportsMap)) {
-		if (typeof value === "string") {
-			rows.push({ subpath, condition: null, file: value });
-			continue;
-		}
-		for (const [condition, file] of Object.entries(value)) {
-			if (typeof file !== "string") {
-				throw new TypeError(
-					`Nested conditional in exports["${subpath}"] is not supported by this smoke test`,
-				);
-			}
-			rows.push({ subpath, condition, file });
-		}
+		flattenConditions(subpath, value, [], rows);
 	}
 	return rows;
 };
@@ -37,12 +39,14 @@ const label = ({ subpath, condition }) =>
 
 const targets = flattenExports(pkg.exports);
 
-// JS shims are expected to surface defineConfig from the source preset. The
-// JSON/d.ts conditions are validated separately by the file-exists checks.
+// JS shims are expected to surface defineConfig from the source preset, in both
+// module formats. The JSON/d.ts conditions are validated separately by the
+// file-exists checks.
+const require = createRequire(import.meta.url);
 const jsShims = [
-	{ subpath: "./eslint", file: "./src/eslint.js" },
-	{ subpath: "./jest", file: "./src/jest.js" },
-	{ subpath: "./rollup", file: "./src/rollup.js" },
+	{ subpath: "./eslint", mjs: "./src/eslint.mjs", cjs: "./src/eslint.cjs" },
+	{ subpath: "./jest", mjs: "./src/jest.mjs", cjs: "./src/jest.cjs" },
+	{ subpath: "./rollup", mjs: "./src/rollup.mjs", cjs: "./src/rollup.cjs" },
 ];
 
 // --- tests ---
@@ -68,13 +72,23 @@ for (const target of targets) {
 }
 
 for (const shim of jsShims) {
-	test(`shim ${shim.subpath} re-exports defineConfig from its source preset`, async () => {
-		const abs = resolve(pkgRoot, shim.file);
+	test(`shim ${shim.subpath} (esm) re-exports defineConfig from its source preset`, async () => {
+		const abs = resolve(pkgRoot, shim.mjs);
 		const mod = await import(pathToFileURL(abs).href);
 		assert.equal(
 			typeof mod.defineConfig,
 			"function",
-			`${shim.file} must re-export defineConfig — got ${typeof mod.defineConfig}`,
+			`${shim.mjs} must re-export defineConfig — got ${typeof mod.defineConfig}`,
+		);
+	});
+
+	test(`shim ${shim.subpath} (cjs) re-exports defineConfig from its source preset`, () => {
+		const abs = resolve(pkgRoot, shim.cjs);
+		const required = require(abs);
+		assert.equal(
+			typeof required.defineConfig,
+			"function",
+			`${shim.cjs} must re-export defineConfig — got ${typeof required.defineConfig}`,
 		);
 	});
 }

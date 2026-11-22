@@ -1,0 +1,12 @@
+{
+	"excludeEntrypoints": [
+		"tsconfig/base",
+		"tsconfig/lib",
+		"tsconfig/node",
+		"tsconfig/react",
+		"tsconfig/env",
+		"api-extractor",
+		"prettier",
+		"commitlint"
+	]
+}

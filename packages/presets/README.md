@@ -9,6 +9,8 @@ Single-install meta-package that bundles the full lazyconfig toolchain. Install 
 
 All presets are re-exported through `@lazyconfig/presets/*` subpath exports, so you only need this one package installed.
 
+The `eslint`, `jest`, and `rollup` factories ship dual ESM/CJS builds, so they load from either an ESM or a CommonJS config file. The examples below use ESM; for a CommonJS config, swap `import { defineConfig } from "..."` for `const { defineConfig } = require("...")`.
+
 ---
 
 ## Installation

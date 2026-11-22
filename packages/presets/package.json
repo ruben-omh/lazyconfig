@@ -12,16 +12,34 @@
 	"exports": {
 		"./package.json": "./package.json",
 		"./rollup": {
-			"types": "./src/rollup.d.ts",
-			"default": "./src/rollup.js"
+			"import": {
+				"types": "./src/rollup.d.mts",
+				"default": "./src/rollup.mjs"
+			},
+			"require": {
+				"types": "./src/rollup.d.cts",
+				"default": "./src/rollup.cjs"
+			}
 		},
 		"./jest": {
-			"types": "./src/jest.d.ts",
-			"default": "./src/jest.js"
+			"import": {
+				"types": "./src/jest.d.mts",
+				"default": "./src/jest.mjs"
+			},
+			"require": {
+				"types": "./src/jest.d.cts",
+				"default": "./src/jest.cjs"
+			}
 		},
 		"./eslint": {
-			"types": "./src/eslint.d.ts",
-			"default": "./src/eslint.js"
+			"import": {
+				"types": "./src/eslint.d.mts",
+				"default": "./src/eslint.mjs"
+			},
+			"require": {
+				"types": "./src/eslint.d.cts",
+				"default": "./src/eslint.cjs"
+			}
 		},
 		"./tsconfig/base": "./src/tsconfig/base.json",
 		"./tsconfig/lib": "./src/tsconfig/lib.json",
@@ -32,11 +50,27 @@
 		"./prettier": "./src/prettier.json",
 		"./commitlint": "./src/commitlint.json"
 	},
+	"typesVersions": {
+		"*": {
+			"rollup": [
+				"./src/rollup.d.ts"
+			],
+			"jest": [
+				"./src/jest.d.ts"
+			],
+			"eslint": [
+				"./src/eslint.d.ts"
+			]
+		}
+	},
 	"scripts": {
 		"build": "node scripts/copy-configs.mjs",
 		"test": "node --test --test-reporter=spec \"test/**/*.test.mjs\"",
 		"clean": "rimraf .turbo",
-		"clean:reset": "pnpm clean && rimraf node_modules"
+		"preclean:reset": "pnpm clean",
+		"clean:reset": "rimraf node_modules",
+		"check:exports": "attw --pack .",
+		"prepublishOnly": "pnpm check:exports"
 	},
 	"dependencies": {
 		"@lazyconfig/api-extractor": "workspace:*",
@@ -48,6 +82,7 @@
 		"@lazyconfig/tsconfig": "workspace:*"
 	},
 	"devDependencies": {
+		"@arethetypeswrong/cli": "catalog:",
 		"rimraf": "catalog:"
 	},
 	"keywords": [
