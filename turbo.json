@@ -6,7 +6,21 @@
 			"description": "Compiles TypeScript source to dist/. Workspace dependency builds run first (^build).",
 			"dependsOn": ["^build", "typecheck"],
 			"outputs": ["dist/**", "out-tsc/**"],
-			"inputs": ["src/**", "tsconfig*.json", "package.json"],
+			"inputs": [
+				"src/**",
+				"tsconfig*.json",
+				"package.json",
+				"rollup.config.*",
+				"api-extractor.json"
+			],
+			"outputLogs": "new-only",
+			"cache": true
+		},
+		"check:exports": {
+			"description": "Validates the packed tarball's exports and type resolution with @arethetypeswrong/cli. Runs after this package's build.",
+			"dependsOn": ["build"],
+			"outputs": [],
+			"inputs": ["package.json"],
 			"outputLogs": "new-only",
 			"cache": true
 		},

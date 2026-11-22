@@ -24,7 +24,8 @@
 	"scripts": {
 		"build": "echo \"no build required\"",
 		"clean": "rimraf .turbo",
-		"clean:reset": "pnpm clean && rimraf node_modules"
+		"preclean:reset": "pnpm clean",
+		"clean:reset": "rimraf node_modules"
 	},
 	"dependencies": {
 		"@commitlint/config-conventional": "catalog:"

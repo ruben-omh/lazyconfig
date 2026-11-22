@@ -17,7 +17,8 @@
 		"build": "rollup --config",
 		"dev": "tsc -p tsconfig.lib.json --watch",
 		"clean": "rimraf out-tsc dist coverage reports .turbo tsconfig.*.tsbuildinfo",
-		"clean:reset": "pnpm clean && rimraf node_modules",
+		"preclean:reset": "pnpm clean",
+		"clean:reset": "rimraf node_modules",
 		"test": "jest"
 	},
 	"dependencies": {

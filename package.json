@@ -10,7 +10,9 @@
 		"lint": "eslint .",
 		"dev": "turbo dev",
 		"clean": "turbo clean",
-		"clean:reset": "turbo clean:reset && rimraf .turbo pnpm-lock.yaml node_modules",
+		"check:exports": "turbo check:exports",
+		"preclean:reset": "turbo clean:reset",
+		"clean:reset": "rimraf .turbo pnpm-lock.yaml node_modules",
 		"prepare": "husky"
 	},
 	"devDependencies": {

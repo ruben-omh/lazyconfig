@@ -27,14 +27,18 @@
 	},
 	"scripts": {
 		"typecheck": "tsc -b --noEmit",
-		"dts": "build-types --tsc tsconfig.lib.json --aec api-extractor.json --ext mts cts",
-		"build": "pnpm dts && rollup --config",
+		"prebuild": "build-types --tsc tsconfig.lib.json --aec api-extractor.json --ext mts cts",
+		"build": "rollup --config",
 		"dev": "tsc -p tsconfig.lib.json --watch",
 		"test": "jest",
 		"clean": "rimraf out-tsc dist coverage reports .turbo tsconfig.*.tsbuildinfo",
-		"clean:reset": "pnpm clean && rimraf node_modules"
+		"preclean:reset": "pnpm clean",
+		"clean:reset": "rimraf node_modules",
+		"check:exports": "attw --pack .",
+		"prepublishOnly": "pnpm check:exports"
 	},
 	"devDependencies": {
+		"@arethetypeswrong/cli": "catalog:",
 		"@babel/core": "catalog:",
 		"@babel/preset-env": "catalog:",
 		"@babel/preset-typescript": "catalog:",

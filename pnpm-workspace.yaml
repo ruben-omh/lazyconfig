@@ -36,7 +36,10 @@ updateNotifier: false
 
 minimumReleaseAgeStrict: true
 
+enablePrePostScripts: true
+
 catalog:
+  "@arethetypeswrong/cli": "0.18.5"
   "@babel/core": "8.1.2"
   "@babel/preset-env": "8.0.7"
   "@babel/preset-typescript": "8.0.7"
