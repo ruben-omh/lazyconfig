@@ -1,11 +1,12 @@
 jest.mock("node:fs/promises", () => ({
 	copyFile: jest.fn(),
+	readFile: jest.fn(),
 }));
 
 // types.ts loads @microsoft/api-extractor through createRequire so the consumer's own
-// install is used at runtime. Mocking node:module is what lets the test intercept that —
+// install is used at runtime. Mocking node:module is what lets the test intercept that -
 // a plain jest.mock of the package would not, since createRequire bypasses the registry.
-// Deliberately a plain function, not a jest.fn — the suite-wide jest.resetAllMocks()
+// Deliberately a plain function, not a jest.fn - the suite-wide jest.resetAllMocks()
 // would otherwise clear its implementation and make createRequire() return undefined.
 jest.mock("node:module", () => ({
 	createRequire: () => mockRequire,
@@ -14,12 +15,13 @@ jest.mock("node:module", () => ({
 jest.mock("../../../../src/helpers/run-command");
 jest.mock("../../../../src/helpers/log");
 
-import { copyFile } from "node:fs/promises";
+import { copyFile, readFile } from "node:fs/promises";
 import { types } from "../../../../src/commands/compile/sub-commands/scripts/types";
 import { runCommand } from "../../../../src/helpers/run-command";
 import { createLogger } from "../../../../src/helpers/log";
 
 const mockedCopyFile = jest.mocked(copyFile);
+const mockedReadFile = jest.mocked(readFile);
 const mockedRunCommand = jest.mocked(runCommand);
 
 const mockLoadFileAndPrepare = jest.fn();
@@ -55,6 +57,7 @@ beforeEach(() => {
 	jest.mocked(createLogger).mockReturnValue(mockLog);
 	mockedRunCommand.mockResolvedValue("");
 	mockedCopyFile.mockResolvedValue(undefined);
+	mockedReadFile.mockResolvedValue("");
 	mockRequire.mockReturnValue({
 		ExtractorConfig: { loadFileAndPrepare: mockLoadFileAndPrepare },
 	});
@@ -158,7 +161,7 @@ describe("types", () => {
 		});
 	});
 
-	describe("ext copies (.d.ts → .d.<ext>)", () => {
+	describe("ext copies (.d.ts -> .d.<ext>)", () => {
 		it("does not copy when ext is omitted (opt-in)", async () => {
 			await types({ aec: ["api-extractor.json"] });
 			expect(mockedCopyFile).not.toHaveBeenCalled();
@@ -260,27 +263,13 @@ describe("types", () => {
 	});
 
 	// Previously these two paths returned silently, leaving the dual-package "exports"
-	// map pointing at .d.mts/.d.cts files that were never written.
-	describe("ext copies — unresolvable rollup", () => {
-		let exitSpy: jest.SpiedFunction<typeof process.exit>;
-
-		beforeEach(() => {
-			exitSpy = jest.spyOn(process, "exit").mockImplementation(() => {
-				throw new Error("process.exit");
-			});
-		});
-
-		afterEach(() => {
-			exitSpy.mockRestore();
-		});
-
+	// map pointing at .d.mts/.d.cts files that were never written. They now throw so the
+	// rejection reaches the CLI's `.fail` handler (which logs and exits 1).
+	describe("ext copies - unresolvable rollup", () => {
 		it("fails loudly when the config emits no rollup", async () => {
 			mockLoadFileAndPrepare.mockReturnValue(prepared({ rollupEnabled: false }));
 			await expect(types({ aec: ["api-extractor.json"], ext: ["mts"] })).rejects.toThrow(
-				"process.exit",
-			);
-			expect(mockLog.error).toHaveBeenCalledWith(
-				expect.stringContaining("produces no declaration rollup"),
+				"produces no declaration rollup",
 			);
 			expect(mockedCopyFile).not.toHaveBeenCalled();
 		});
@@ -288,11 +277,9 @@ describe("types", () => {
 		it("fails loudly when every rollup path is unset", async () => {
 			mockLoadFileAndPrepare.mockReturnValue(prepared({ untrimmedFilePath: "" }));
 			await expect(types({ aec: ["api-extractor.json"], ext: ["mts"] })).rejects.toThrow(
-				"process.exit",
+				"produces no declaration rollup",
 			);
-			expect(mockLog.error).toHaveBeenCalledWith(
-				expect.stringContaining("produces no declaration rollup"),
-			);
+			expect(mockedCopyFile).not.toHaveBeenCalled();
 		});
 
 		it("fails loudly when @microsoft/api-extractor cannot be resolved", async () => {
@@ -300,11 +287,99 @@ describe("types", () => {
 				throw new Error("Cannot find module '@microsoft/api-extractor'");
 			});
 			await expect(types({ aec: ["api-extractor.json"], ext: ["mts"] })).rejects.toThrow(
-				"process.exit",
+				"could not be resolved from this project",
 			);
-			expect(mockLog.error).toHaveBeenCalledWith(
-				expect.stringContaining("could not be resolved from this project"),
+		});
+	});
+
+	describe("ext validation", () => {
+		it("rejects an unsupported ext token", async () => {
+			await expect(types({ aec: ["api-extractor.json"], ext: ["js"] })).rejects.toThrow(
+				'Invalid --ext value "js"',
 			);
+		});
+
+		it("validates ext up front, before any compilation runs", async () => {
+			await expect(types({ ext: ["nope"] })).rejects.toThrow("Invalid --ext value");
+			expect(mockedRunCommand).not.toHaveBeenCalled();
+		});
+
+		it("accepts the normalized forms of valid tokens", async () => {
+			await types({ aec: ["api-extractor.json"], ext: [".mts", ".d.cts"] });
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/index.d.ts",
+				"/project/dist/index.d.mts",
+			);
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/index.d.ts",
+				"/project/dist/index.d.cts",
+			);
+		});
+
+		it("de-duplicates repeated ext tokens", async () => {
+			await types({ aec: ["api-extractor.json"], ext: ["mts", "mts"] });
+			expect(mockedCopyFile).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	describe("ext copies - every rollup variant", () => {
+		it("copies both the untrimmed and trimmed rollups when both are configured", async () => {
+			mockLoadFileAndPrepare.mockReturnValue(
+				prepared({ publicTrimmedFilePath: "/project/dist/public.d.ts" }),
+			);
+			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
+			expect(mockedCopyFile).toHaveBeenCalledTimes(2);
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/index.d.ts",
+				"/project/dist/index.d.mts",
+			);
+			expect(mockedCopyFile).toHaveBeenCalledWith(
+				"/project/dist/public.d.ts",
+				"/project/dist/public.d.mts",
+			);
+		});
+
+		it("de-duplicates rollup variants that resolve to the same path", async () => {
+			mockLoadFileAndPrepare.mockReturnValue(
+				prepared({ publicTrimmedFilePath: "/project/dist/index.d.ts" }),
+			);
+			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
+			expect(mockedCopyFile).toHaveBeenCalledTimes(1);
+		});
+
+		it("skips and warns when a rollup path does not end in .d.ts", async () => {
+			mockLoadFileAndPrepare.mockReturnValue(
+				prepared({ untrimmedFilePath: "/project/dist/index.d.mts" }),
+			);
+			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
+			expect(mockedCopyFile).not.toHaveBeenCalled();
+			expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining("does not end in .d.ts"));
+		});
+	});
+
+	describe("verbatim-copy warnings", () => {
+		it("warns when the rollup still contains relative imports", async () => {
+			mockedReadFile.mockResolvedValue('export { x } from "./internal";');
+			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
+			expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining("relative imports"));
+		});
+
+		it("warns when a .d.cts copy would carry a default export", async () => {
+			mockedReadFile.mockResolvedValue("export default function foo() {}");
+			await types({ aec: ["api-extractor.json"], ext: ["cts"] });
+			expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining("default export"));
+		});
+
+		it("does not warn about default exports when no .d.cts copy is requested", async () => {
+			mockedReadFile.mockResolvedValue("export default function foo() {}");
+			await types({ aec: ["api-extractor.json"], ext: ["mts"] });
+			expect(mockLog.warn).not.toHaveBeenCalledWith(expect.stringContaining("default export"));
+		});
+
+		it("does not warn for a clean rollup", async () => {
+			mockedReadFile.mockResolvedValue("export declare const x: number;");
+			await types({ aec: ["api-extractor.json"], ext: ["mts", "cts"] });
+			expect(mockLog.warn).not.toHaveBeenCalled();
 		});
 	});
 
@@ -340,6 +415,32 @@ describe("types", () => {
 		it("logs success on completion", async () => {
 			await types();
 			expect(mockLog.success).toHaveBeenCalledWith(expect.stringContaining("successfully"));
+		});
+	});
+
+	// settleAll's contract: run EVERY sibling task to completion, then rethrow the FIRST
+	// failure in source order (never short-circuit on whichever rejects first in time).
+	// Promise.allSettled is what waits for every sibling before picking the first-listed
+	// rejection; a bare Promise.all would reject with the first-in-time failure and abandon
+	// the rest. Here the second config rejects sooner, yet the first config's failure must
+	// surface -- which also proves the later-settling first config was waited on to completion.
+	describe("settleAll contract (first failure in source order wins)", () => {
+		it("rethrows the first config's failure even when a later config rejects sooner", async () => {
+			mockedRunCommand.mockImplementation((cmd, args) => {
+				if (cmd === "api-extractor" && args[2] === "first.json") {
+					return new Promise<string>((_resolve, reject) =>
+						setTimeout(() => reject(new Error("first config failed")), 10),
+					);
+				}
+				if (cmd === "api-extractor" && args[2] === "second.json") {
+					return Promise.reject(new Error("second config failed"));
+				}
+				return Promise.resolve("");
+			});
+
+			await expect(types({ aec: ["first.json", "second.json"] })).rejects.toThrow(
+				"first config failed",
+			);
 		});
 	});
 });
