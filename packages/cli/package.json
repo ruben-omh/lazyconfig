@@ -1,6 +1,6 @@
 {
 	"name": "@lazyconfig/cli",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Shared CLI scripts for automating and enforcing development workflows.",
 	"type": "module",
 	"files": [

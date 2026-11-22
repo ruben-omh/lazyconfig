@@ -1,5 +1,11 @@
 # @lazyconfig/cli
 
+## 0.2.1
+
+### Patch Changes
+
+- [`264718a`](https://github.com/ruben-omh/lazyconfig/commit/264718a7f4095e44a0e8eaeaa1e8474fad0774f1) Thanks [@ruben-omh](https://github.com/ruben-omh)! - Harden `lazyconfig compile types`: emit `.d.<ext>` declaration copies from every configured api-extractor rollup (untrimmed and trimmed) instead of only the first, validate the `--ext` values, and fail with a clear error message instead of a silent exit when a declaration rollup cannot be resolved.
+
 ## 0.2.0
 
 ### Minor Changes

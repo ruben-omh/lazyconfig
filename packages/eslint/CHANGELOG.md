@@ -1,5 +1,11 @@
 # @lazyconfig/eslint
 
+## 0.1.2
+
+### Patch Changes
+
+- [`264718a`](https://github.com/ruben-omh/lazyconfig/commit/264718a7f4095e44a0e8eaeaa1e8474fad0774f1) Thanks [@ruben-omh](https://github.com/ruben-omh)! - Fix type resolution for CommonJS consumers. Removed the top-level `types` entry in the package `exports` that shadowed the per-condition `.d.mts`/`.d.cts` declarations, which caused `@arethetypeswrong/cli` to report the CJS build as masquerading as ESM. `require` consumers now resolve the correct `.d.cts` types.
+
 ## 0.1.1
 
 ### Patch Changes
