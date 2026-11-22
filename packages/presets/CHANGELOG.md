@@ -1,5 +1,18 @@
 # @lazyconfig/presets
 
+## 0.2.0
+
+### Minor Changes
+
+- [`264718a`](https://github.com/ruben-omh/lazyconfig/commit/264718a7f4095e44a0e8eaeaa1e8474fad0774f1) Thanks [@ruben-omh](https://github.com/ruben-omh)! - Add CommonJS support to the `rollup`, `jest`, and `eslint` preset subpaths. They now ship dual ESM/CJS builds, so `@lazyconfig/presets/{rollup,jest,eslint}` resolve under both `import` and `require` (previously ESM-only, which broke CommonJS config files).
+
+### Patch Changes
+
+- Updated dependencies [[`264718a`](https://github.com/ruben-omh/lazyconfig/commit/264718a7f4095e44a0e8eaeaa1e8474fad0774f1)]:
+  - @lazyconfig/eslint@0.1.2
+  - @lazyconfig/jest@0.2.1
+  - @lazyconfig/rollup@0.1.2
+
 ## 0.1.2
 
 ### Patch Changes
