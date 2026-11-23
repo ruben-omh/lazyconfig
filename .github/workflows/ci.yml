@@ -113,6 +113,9 @@ jobs:
     uses: ./.github/workflows/test-suite.yml
     permissions:
       contents: read
+      # Lets test-suite.yml exchange a GitHub OIDC token for a short-lived
+      # Vercel Remote Cache token (Turborepo). Grants no repo write access.
+      id-token: write
     with:
       upload-artifacts: true
 

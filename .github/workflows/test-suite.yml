@@ -11,6 +11,16 @@ name: Test Suite
 # Inputs let callers tweak behaviour without forking the file. They're
 # currently all defaulted for ci.yml; the parameters exist so a future
 # caller can opt out of artifact uploads or narrow the matrix.
+#
+# Turbo cache: every job authenticates to Vercel Remote Cache via OIDC
+# (vercel/setup-turborepo-remote-cache-action), so build outputs produced by
+# the `build` job are restored by `lint`, `check-exports` and `test` — and by
+# later runs on any branch with identical inputs. This replaces the previous
+# actions/cache-based .turbo sharing.
+#
+# Requires: the caller job grants `id-token: write` (a called workflow cannot
+# exceed its caller's permissions), a Turborepo CLI OIDC policy on Vercel for
+# this repository, and the TURBO_TEAM repository variable.
 
 on:
   workflow_call:
@@ -32,6 +42,10 @@ on:
         type: string
         default: "[22, 24]"
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   build:
     name: Build
@@ -42,13 +56,14 @@ jobs:
 
       - uses: ./.github/actions/node-setup
 
-      - name: Cache Turbo
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # PRs from forks (and other runs without an OIDC token) cannot
+      # authenticate; continue-on-error lets turbo fall back to a local-only
+      # cache instead of failing the build.
+      - name: Set up Turborepo Remote Cache
+        continue-on-error: true
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
         with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
+          team: ${{ vars.TURBO_TEAM }}
 
       - name: Build
         run: pnpm build
@@ -63,14 +78,14 @@ jobs:
 
       - uses: ./.github/actions/node-setup
 
-      - name: Restore Turbo cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Set up Turborepo Remote Cache
+        continue-on-error: true
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
         with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
+          team: ${{ vars.TURBO_TEAM }}
 
+      # `lint` is plain `eslint .` (not a turbo task), so dist/ of workspace
+      # deps must be restored explicitly for type-aware rules to resolve them.
       - name: Restore build outputs
         run: pnpm build
 
@@ -87,17 +102,16 @@ jobs:
 
       - uses: ./.github/actions/node-setup
 
-      - name: Restore Turbo cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Set up Turborepo Remote Cache
+        continue-on-error: true
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
         with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
+          team: ${{ vars.TURBO_TEAM }}
 
-      - name: Restore build outputs
-        run: pnpm build
-
+      # check:exports dependsOn build (turbo.json), so turbo restores each
+      # package's dist/ from the Remote Cache before validating it — no
+      # separate build step needed. Packages without a check:exports script
+      # are simply not validated here; this job never publishes.
       - name: Check exports
         run: pnpm check:exports
 
@@ -117,13 +131,11 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Restore Turbo cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Set up Turborepo Remote Cache
+        continue-on-error: true
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
         with:
-          path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
+          team: ${{ vars.TURBO_TEAM }}
 
       - name: Test
         run: pnpm test
